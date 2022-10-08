@@ -12,19 +12,30 @@
       system:
         let
           mach-nix-wrapper = import mach-nix {
-            inherit pkgs;
+            inherit pkgs python;
             pypiDataRev = "207b45139d020d459c8e2f70409668f1559d3e95";
-            pypiDataSha256 = "0w64x47scn0cj854ddnafklljaivv2zigr4zzcvi3b80lfy1ks9f"; 
-            python = "python310";
+            pypiDataSha256 = "0w64x47scn0cj854ddnafklljaivv2zigr4zzcvi3b80lfy1ks9f";
           };
           pkgs = nixpkgs.legacyPackages.${system};
-          pyenv = mach-nix-wrapper.mkPython {
-            python = "python310";
-            requirements = builtins.readFile ./requirements.txt;
+          pyenv-dev = mach-nix-wrapper.mkPython {
+            inherit python;
+            requirements = builtins.readFile ./requirements-dev.txt;
           };
+          pyenv-run = mach-nix-wrapper.mkPython {
+            inherit python;
+            requirements = builtins.readFile ./requirements-run.txt;
+          };
+          python = "python310";
         in {
           devShell = pkgs.mkShell {
-            buildInputs = with pkgs; [pyenv];
+            buildInputs = with pkgs; [
+              pyenv-dev
+              pyenv-run
+            ];
+            shellHook =
+              ''
+                export MYPY_PYTHON=${pyenv-run}/bin/python
+              '';
           };
         }
     );
