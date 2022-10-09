@@ -41,6 +41,9 @@
               terraform
               terraform-providers.aws
             ];
+            shellHook = ''
+              export PYTHONPATH="$(pwd)/src:$PYTHONPATH"
+            '';
           };
           apps = {
             deployDynamoDb = {
