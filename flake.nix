@@ -42,7 +42,28 @@
               terraform-providers.aws
             ];
           };
+          apps = {
+            deployDynamoDb = {
+              program = "${self.packages.${system}.dynamoDb}/run.sh";
+              type = "app";
+            }; 
+          };
           packages = {
+            dynamoDb = with pkgs; builtins.derivation {
+              inherit projectSrc system;
+              args = [./builders/dynamodb.sh];
+              bash = "${bash}";
+              buildInputs = [
+                coreutils
+                gnused
+                terraform
+                terraform-providers.aws
+              ];
+              builder = "${bash}/bin/bash";
+              entrypoint = ./builders/dynamodb_entrypoint.sh;
+              name = "dynamodb";
+              src = ./infra;
+            };
             lintPython = with pkgs; builtins.derivation {
               inherit projectSrc system;
               args = [./builders/python_linter.sh];
