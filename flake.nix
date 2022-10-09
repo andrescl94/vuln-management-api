@@ -29,6 +29,7 @@
         in {
           devShell = pkgs.mkShell {
             buildInputs = with pkgs; [
+              pkgs.python310Packages.setuptools
               pyenv-dev
               pyenv-run
             ];
