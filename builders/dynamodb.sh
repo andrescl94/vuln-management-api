@@ -8,6 +8,7 @@ function main {
     mkdir "${out}" \
     && sed \
         -e "s#__bash__#${bash}#g" \
+        -e "s#__dynamoDbZip__#${dynamoDbZip}#g" \
         -e "s#__src__#${src}#g" \
         -e "s#__PATH__#${PATH}#g" \
         "${entrypoint}" \
