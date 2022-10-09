@@ -56,10 +56,17 @@
               buildInputs = [
                 coreutils
                 gnused
+                lsof
+                openjdk_headless
                 terraform
                 terraform-providers.aws
+                unzip
               ];
               builder = "${bash}/bin/bash";
+              dynamoDbZip = pkgs.fetchurl {
+                url = "https://s3.us-west-2.amazonaws.com/dynamodb-local/dynamodb_local_2022-09-10.zip";
+                sha256 = "7ec2f8d538f4b026dacecc944ef68dc5a39878b702c866365f286c8e349d81e1";
+              };
               entrypoint = ./builders/dynamodb_entrypoint.sh;
               name = "dynamodb";
               src = ./infra;
