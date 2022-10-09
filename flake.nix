@@ -33,11 +33,13 @@
           };
           python = "python310";
         in {
-          devShell = pkgs.mkShell {
+          devShell = with pkgs; mkShell {
             buildInputs = [
-              pkgs.python310Packages.setuptools
+              python310Packages.setuptools
               pyenvDev
               pyenvRun
+              terraform
+              terraform-providers.aws
             ];
           };
           packages = {
