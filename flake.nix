@@ -11,32 +11,49 @@
     flake-utils.lib.eachDefaultSystem (
       system:
         let
-          mach-nix-wrapper = import mach-nix {
+          pkgs = nixpkgs.legacyPackages.${system};
+          projectSrc = ./.;
+
+          # Use a more recent revision to fetch the latest versions
+          # of the Python packages
+          machNixWrapper = import mach-nix {
             inherit pkgs python;
             pypiDataRev = "207b45139d020d459c8e2f70409668f1559d3e95";
             pypiDataSha256 = "0w64x47scn0cj854ddnafklljaivv2zigr4zzcvi3b80lfy1ks9f";
           };
-          pkgs = nixpkgs.legacyPackages.${system};
-          pyenv-dev = mach-nix-wrapper.mkPython {
+
+          # Build Python environments
+          pyenvDev = machNixWrapper.mkPython {
             inherit python;
             requirements = builtins.readFile ./requirements-dev.txt;
           };
-          pyenv-run = mach-nix-wrapper.mkPython {
+          pyenvRun = machNixWrapper.mkPython {
             inherit python;
             requirements = builtins.readFile ./requirements-run.txt;
           };
           python = "python310";
         in {
           devShell = pkgs.mkShell {
-            buildInputs = with pkgs; [
+            buildInputs = [
               pkgs.python310Packages.setuptools
-              pyenv-dev
-              pyenv-run
+              pyenvDev
+              pyenvRun
             ];
-            shellHook =
-              ''
-                export MYPY_PYTHON=${pyenv-run}/bin/python
-              '';
+          };
+          packages = {
+            lintPython = with pkgs; builtins.derivation {
+              inherit projectSrc system;
+              args = [./builders/python_linter.sh];
+              buildInputs = [
+                coreutils
+                python310Packages.setuptools
+                pyenvDev
+                pyenvRun
+              ];
+              builder = "${bash}/bin/bash";
+              name = "lint-python-code";
+              pythonExecutable = "${pyenvRun}/bin/python";
+            };
           };
         }
     );
