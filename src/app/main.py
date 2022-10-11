@@ -9,8 +9,10 @@ from context import (
     OAUTH_GOOGLE_CLIENT_ID,
     OAUTH_GOOGLE_SECRET,
 )
+from jwt_token import get_email_from_jwt
 from users import User, UserAccessToken, create_user, get_user
 from utils import get_from_timestamp
+from .decorators import require_authentication
 
 
 APP = FastAPI()
@@ -37,8 +39,10 @@ OAUTH.register(
 
 
 @APP.get("/")
-async def root() -> Dict[str, str]:
-    return {"message": "Hello World"}
+@require_authentication
+async def root(request: Request) -> Dict[str, str]:
+    user_email = get_email_from_jwt(request)
+    return {"message": f"Hello {user_email}"}
 
 
 @APP.get("/auth")
