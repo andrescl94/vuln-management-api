@@ -1,7 +1,9 @@
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
+
+from systems import SystemRoles
 
 
 class PathTags(Enum):
@@ -30,3 +32,8 @@ class SystemModel(BaseModel):  # pylint: disable=too-few-public-methods
         title="Description of the system",
         regex=r"^[a-zA-Z0-9_\-\s]{5,55}$"
     )
+
+
+class SystemUserModel(BaseModel):  # pylint: disable=too-few-public-methods
+    email: EmailStr
+    role: SystemRoles

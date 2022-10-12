@@ -12,11 +12,16 @@ from context import (
 )
 from custom_exceptions import ExternalAuthError
 from jwt_token import get_email_from_jwt
-from systems import create_system
+from systems import add_system_user, create_system
 from users import User, UserAccessToken, create_user, get_user
 from utils import get_from_timestamp
-from .decorators import require_authentication
-from .models import AccessTokenModel, PathTags, SystemModel
+from .decorators import require_access, require_authentication
+from .models import (
+    AccessTokenModel,
+    PathTags,
+    SystemModel,
+    SystemUserModel,
+)
 
 
 APP = FastAPI()
@@ -76,6 +81,33 @@ async def systems_create(
     return SystemModel(
         name=new_system.name, description=new_system.description
     )
+
+
+@APP.post(
+    path="/systems/{system_name}/add_user",
+    response_model=SystemUserModel,
+    status_code=201,
+    tags=[PathTags.SYSTEMS.value],
+)
+@require_authentication
+@require_access
+async def systems_add_user(
+    request: Request, system_name: str, user: SystemUserModel
+) -> SystemUserModel:
+    """
+    Add a user to a system with the provided information
+
+    - **email**: Email of the user to add
+    - **role**: Role the user will have in said system
+        - **owner**
+        - **reporter**
+        - **viewer**
+    """
+    user_email = get_email_from_jwt(request)
+    added_user = await add_system_user(
+        system_name.lower(), user.email.lower(), user.role, user_email
+    )
+    return SystemUserModel(email=added_user.email, role=added_user.role)
 
 
 @APP.get(

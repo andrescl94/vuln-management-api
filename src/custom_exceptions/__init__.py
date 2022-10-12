@@ -28,3 +28,10 @@ class SystemAlreadyExists(HTTPException):
 
     def __init__(self) -> None:
         super().__init__(status_code=400, detail=self.message)
+
+
+class SystemUserAlreadyExists(HTTPException):
+    message = "User already belongs to the system"
+
+    def __init__(self) -> None:
+        super().__init__(status_code=400, detail=self.message)
