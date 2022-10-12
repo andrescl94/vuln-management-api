@@ -13,3 +13,11 @@ class SystemRoles(Enum):
     OWNER: str = "owner"
     REPORTER: str = "reported"
     VIEWER: str = "viewer"
+
+
+class SystemUser(NamedTuple):
+    added_date: str
+    added_by: str
+    email: str
+    role: SystemRoles
+    system_name: str

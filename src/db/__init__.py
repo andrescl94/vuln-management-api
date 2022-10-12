@@ -1,4 +1,5 @@
 from decimal import Decimal
+from enum import Enum
 from typing import Any, Dict, List
 
 import aioboto3
@@ -21,10 +22,14 @@ async def put_item(hash_key: str, range_key: str, **kwargs: Any) -> None:
         "dynamodb", endpoint_url=ENDPOINT_URL
     ) as dynamo_resource:
         table = await dynamo_resource.Table(TABLE_NAME)
-        attrs = {
-            key: (Decimal(str(value)) if isinstance(value, float) else value)
-            for key, value in kwargs.items()
-        }
+        attrs: Any = {}
+        for _key, _value in kwargs.items():
+            if isinstance(_value, float):
+                attrs.update({_key: Decimal(str(_value))})
+            elif isinstance(_value, Enum):
+                attrs.update({_key: _value.value})
+            else:
+                attrs.update({_key: _value})
         await table.put_item(
             Item={"hk": hash_key, "rk": range_key, **attrs}
         )
