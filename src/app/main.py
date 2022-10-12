@@ -3,16 +3,20 @@ from typing import Any, Dict, Optional, Tuple
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import FastAPI, Request
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
+from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 
 from context import (
     OAUTH_GOOGLE_CLIENT_ID,
     OAUTH_GOOGLE_SECRET,
 )
+from custom_exceptions import ExternalAuthError
 from jwt_token import get_email_from_jwt
+from systems import create_system
 from users import User, UserAccessToken, create_user, get_user
 from utils import get_from_timestamp
 from .decorators import require_authentication
+from .models import AccessTokenModel, PathTags, SystemModel
 
 
 APP = FastAPI()
@@ -38,32 +42,76 @@ OAUTH.register(
 )
 
 
-@APP.get("/")
+@APP.get(path="/", status_code=307)
+async def redirect_to_docs() -> RedirectResponse:
+    return RedirectResponse("/docs/")
+
+
+@APP.post(
+    path="/systems/create/",
+    response_model=SystemModel,
+    status_code=201,
+    tags=[PathTags.SYSTEMS.value],
+)
 @require_authentication
-async def root(request: Request) -> Dict[str, str]:
+async def systems_create(
+    request: Request,
+    system: SystemModel
+) -> SystemModel:
+    """
+    **Requires authentication**
+    Creates a system to manage vulnerabilities with the provided information
+
+    - **name**: Name of the system, restricted to alphanumeric characters,
+      `-` (hyphen) and `_` (underscore); 5 to 25 characters long.
+    - **description**: Description of the system,
+      restricted to alphanumeric characters,
+      `-` (hyphen), `_` (underscore) and ` ` (white speaces);
+      5 to 55 characters long.
+    """
     user_email = get_email_from_jwt(request)
-    return {"message": f"Hello {user_email}"}
+    new_system = await create_system(
+        system.name.lower(), system.description, user_email
+    )
+    return SystemModel(
+        name=new_system.name, description=new_system.description
+    )
 
 
-@APP.get("/auth")
-async def auth(request: Request) -> Dict[str, str]:
+@APP.get(
+    path="/auth", response_model=AccessTokenModel, tags=[PathTags.AUTH.value]
+)
+async def auth(request: Request) -> AccessTokenModel:
+    """
+    Endpoint used by Google OAuth after a successful authentication.
+
+    It will only return the API token on the first successfull authentication.
+    """
     try:
         token = await OAUTH.google.authorize_access_token(request)
-    except OAuthError:
-        return {"message": "There was an error during authentication"}
+    except OAuthError as exc:
+        raise ExternalAuthError() from exc
+
     user_info = token.get('userinfo')
     logged_user, access_token = await handle_user_login(user_info)
+    response: AccessTokenModel
     if access_token is None:
-        return {"user_id": logged_user.email}
-    return {
-        "user_id": logged_user.email,
-        "access_token": access_token.jwt,
-        "expiration_date": get_from_timestamp(access_token.exp)
-    }
+        response = AccessTokenModel(user_id=logged_user.email)
+    else:
+        response = AccessTokenModel(
+            user_id=logged_user.email,
+            jwt_token=access_token.jwt,
+            expiration_date=get_from_timestamp(access_token.exp)
+        )
+
+    return response
 
 
-@APP.get('/login')
+@APP.get(path="/login", status_code=302, tags=[PathTags.AUTH.value])
 async def login(request: Request) -> Any:
+    """
+    Login/Sign up to the application using your Google account
+    """
     redirect_uri = request.url_for('auth')
     return await OAUTH.google.authorize_redirect(request, redirect_uri)
 
