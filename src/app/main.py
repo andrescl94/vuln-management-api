@@ -12,7 +12,7 @@ from context import (
 )
 from custom_exceptions import ExternalAuthError
 from jwt_token import get_email_from_jwt
-from systems import add_system_user, create_system
+from systems import add_system_user, add_system_vulnerability, create_system
 from users import User, UserAccessToken, create_user, get_user
 from utils import get_from_timestamp
 from .decorators import require_access, require_authentication
@@ -21,6 +21,7 @@ from .models import (
     PathTags,
     SystemModel,
     SystemUserModel,
+    SystemVulnerabilityModel,
 )
 
 
@@ -65,6 +66,7 @@ async def systems_create(
 ) -> SystemModel:
     """
     **Requires authentication**
+
     Creates a system to manage vulnerabilities with the provided information
 
     - **name**: Name of the system, restricted to alphanumeric characters,
@@ -95,6 +97,8 @@ async def systems_add_user(
     request: Request, system_name: str, user: SystemUserModel
 ) -> SystemUserModel:
     """
+    **Requires authentication and system access with role owner**
+
     Add a user to a system with the provided information
 
     - **email**: Email of the user to add
@@ -108,6 +112,31 @@ async def systems_add_user(
         system_name.lower(), user.email.lower(), user.role, user_email
     )
     return SystemUserModel(email=added_user.email, role=added_user.role)
+
+
+@APP.post(
+    path="/systems/{system_name}/report_vuln",
+    response_model=SystemVulnerabilityModel,
+    status_code=201,
+    tags=[PathTags.SYSTEMS.value],
+)
+@require_authentication
+@require_access
+async def systems_add_vulnerability(
+    request: Request, system_name: str, vulnerability: SystemVulnerabilityModel
+) -> SystemVulnerabilityModel:
+    """
+    **Requires authentication and system access with at least role reporter**
+
+    Report a vulnerability with the provided information to the system
+
+    - **cve**: CVE ID of the vulnerability to report
+    """
+    user_email = get_email_from_jwt(request)
+    added_vulnerability = await add_system_vulnerability(
+        system_name, vulnerability.cve.lower(), user_email
+    )
+    return SystemVulnerabilityModel(cve=added_vulnerability.cve.upper())
 
 
 @APP.get(

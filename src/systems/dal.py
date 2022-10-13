@@ -2,7 +2,15 @@ from typing import Optional
 
 from db import query, put_item
 from utils import get_now_as_iso
-from .types import System, SystemRoles, SystemUser
+from .types import (
+    CVEInfo,
+    System,
+    SystemRoles,
+    SystemUser,
+    SystemVulnerability,
+    SystemVulnerabilitySeverity,
+    SystemVulnerabilityState,
+)
 
 
 async def add_system_user(
@@ -25,6 +33,41 @@ async def add_system_user(
     )
 
     return system_user
+
+
+async def add_system_vulnerability(
+    system_name: str, cve: str, user_email: str, cve_info: CVEInfo
+) -> SystemVulnerability:
+    now = get_now_as_iso()
+    default_state = SystemVulnerabilityState.OPEN
+    system_vulnerability = SystemVulnerability(
+        added_by=user_email,
+        added_date=now,
+        cve=cve,
+        description=cve_info.description,
+        severity_hk=f"SYSTEM#{system_name}",
+        state_hk=f"SYSTEM#{system_name=}",
+        modified_by=user_email,
+        modified_date=now,
+        references=cve_info.references,
+        severity_rk=(
+            f"SEVERITY#{cve_info.severity.value}"
+            if cve_info.severity
+            else None
+        ),
+        state_rk=f"STATE#{default_state.value}",
+        severity=cve_info.severity,
+        severity_score=cve_info.severity_score,
+        state=default_state,
+        system_name=system_name
+    )
+    await put_item(
+        f"SYSTEM#{system_vulnerability.system_name}",
+        f"CVE#{system_vulnerability.cve}",
+        **system_vulnerability._asdict()
+    )
+
+    return system_vulnerability
 
 
 async def create_system(
@@ -74,3 +117,41 @@ async def get_system_user(
         )
 
     return system_user
+
+
+async def get_system_vulnerability(
+    system_name: str, cve: str
+) -> Optional[SystemVulnerability]:
+    system_vulnerability: Optional[SystemVulnerability] = None
+    results = await query(f"SYSTEM#{system_name}", f"CVE#{cve}")
+    if results:
+        system_vulnerability = SystemVulnerability(
+            added_by=results[0]["added_by"],
+            added_date=results[0]["added_date"],
+            cve=results[0]["cve"],
+            description=results[0]["description"],
+            severity_hk=results[0]["severity_hk"],
+            state_hk=results[0]["state_hk"],
+            modified_by=results[0]["modified_by"],
+            modified_date=results[0]["modified_date"],
+            references=results[0]["references"],
+            severity_rk=(
+                results[0]["severity_rk"]
+                if results[0].get("severity_rk") else None
+            ),
+            state_rk=results[0]["state_rk"],
+            severity=(
+                SystemVulnerabilitySeverity(results[0]["severity"])
+                if results[0].get("severity")
+                else None
+            ),
+            severity_score=(
+                float(results[0]["severity_score"])
+                if results[0].get("severity_score")
+                else None
+            ),
+            state=SystemVulnerabilityState(results[0]["state"]),
+            system_name=results[0]["system_name"]
+        )
+
+    return system_vulnerability

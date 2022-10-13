@@ -37,3 +37,14 @@ class SystemModel(BaseModel):  # pylint: disable=too-few-public-methods
 class SystemUserModel(BaseModel):  # pylint: disable=too-few-public-methods
     email: EmailStr
     role: SystemRoles
+
+
+class SystemVulnerabilityModel(  # pylint: disable=too-few-public-methods
+    BaseModel
+):
+    cve: str = Field(
+        default=...,
+        title="CVE ID of the vulnerability to report",
+        max_length=20,
+        regex=r"^(cve|CVE)\-\d{4}\-\d{4,}"
+    )
