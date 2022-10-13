@@ -1,6 +1,6 @@
 import binascii
 import secrets
-from typing import Optional, Tuple
+from typing import Optional
 
 
 from jwt_token import (
@@ -49,14 +49,12 @@ async def verify_user_jwt_token(jwt_token: str) -> bool:
     return jwt_verified
 
 
-async def create_user(
-    user_email: str, user_name: str
-) -> Tuple[User, UserAccessToken]:
+async def create_user(user_email: str, user_name: str) -> UserAccessToken:
     access_token = generate_access_token(user_email, user_name)
-    user = await dal_create_user(
+    await dal_create_user(
         user_email, user_name, access_token.jti, access_token.exp
     )
-    return user, access_token
+    return access_token
 
 
 async def get_user(user_email: str) -> Optional[User]:

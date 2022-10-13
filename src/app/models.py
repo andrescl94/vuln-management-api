@@ -4,6 +4,7 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 
 from systems import SystemRoles
+from systems.types import SystemVulnerabilityState
 
 
 class PathTags(Enum):
@@ -11,10 +12,15 @@ class PathTags(Enum):
     SYSTEMS: str = "systems"
 
 
-class AccessTokenModel(BaseModel):  # pylint: disable=too-few-public-methods
+class SuccessModel(BaseModel):  # pylint: disable=too-few-public-methods
+    success: bool
+
+
+class SuccessTokenModel(  # pylint: disable=too-few-public-methods
+    SuccessModel
+):
     expiration_date: Optional[str]
     jwt_token: Optional[str]
-    user_id: str
 
 
 class SystemModel(BaseModel):  # pylint: disable=too-few-public-methods
@@ -48,3 +54,9 @@ class SystemVulnerabilityModel(  # pylint: disable=too-few-public-methods
         max_length=20,
         regex=r"^(cve|CVE)\-\d{4}\-\d{4,}"
     )
+
+
+class UpdateSystemVulnerabilityModel(  # pylint: disable=too-few-public-methods
+    SystemVulnerabilityModel
+):
+    state: SystemVulnerabilityState

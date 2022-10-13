@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict
 
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import FastAPI, Request
@@ -12,16 +12,23 @@ from context import (
 )
 from custom_exceptions import ExternalAuthError
 from jwt_token import get_email_from_jwt
-from systems import add_system_user, add_system_vulnerability, create_system
-from users import User, UserAccessToken, create_user, get_user
+from systems import (
+    add_system_user,
+    add_system_vulnerability,
+    create_system,
+    update_system_vulnerability_state,
+)
+from users import create_user, get_user
 from utils import get_from_timestamp
 from .decorators import require_access, require_authentication
 from .models import (
-    AccessTokenModel,
     PathTags,
+    SuccessModel,
+    SuccessTokenModel,
     SystemModel,
     SystemUserModel,
     SystemVulnerabilityModel,
+    UpdateSystemVulnerabilityModel,
 )
 
 
@@ -55,7 +62,7 @@ async def redirect_to_docs() -> RedirectResponse:
 
 @APP.post(
     path="/systems/create",
-    response_model=SystemModel,
+    response_model=SuccessModel,
     status_code=201,
     tags=[PathTags.SYSTEMS.value],
 )
@@ -63,7 +70,7 @@ async def redirect_to_docs() -> RedirectResponse:
 async def systems_create(
     request: Request,
     system: SystemModel
-) -> SystemModel:
+) -> SuccessModel:
     """
     **Requires authentication**
 
@@ -77,17 +84,13 @@ async def systems_create(
       5 to 55 characters long.
     """
     user_email = get_email_from_jwt(request)
-    new_system = await create_system(
-        system.name.lower(), system.description, user_email
-    )
-    return SystemModel(
-        name=new_system.name, description=new_system.description
-    )
+    await create_system(system.name.lower(), system.description, user_email)
+    return SuccessModel(success=True)
 
 
 @APP.post(
     path="/systems/{system_name}/add_user",
-    response_model=SystemUserModel,
+    response_model=SuccessModel,
     status_code=201,
     tags=[PathTags.SYSTEMS.value],
 )
@@ -95,7 +98,7 @@ async def systems_create(
 @require_access
 async def systems_add_user(
     request: Request, system_name: str, user: SystemUserModel
-) -> SystemUserModel:
+) -> SuccessModel:
     """
     **Requires authentication and system access with role owner**
 
@@ -108,15 +111,15 @@ async def systems_add_user(
         - **viewer**
     """
     user_email = get_email_from_jwt(request)
-    added_user = await add_system_user(
+    await add_system_user(
         system_name.lower(), user.email.lower(), user.role, user_email
     )
-    return SystemUserModel(email=added_user.email, role=added_user.role)
+    return SuccessModel(success=True)
 
 
 @APP.post(
     path="/systems/{system_name}/report_vuln",
-    response_model=SystemVulnerabilityModel,
+    response_model=SuccessModel,
     status_code=201,
     tags=[PathTags.SYSTEMS.value],
 )
@@ -124,7 +127,7 @@ async def systems_add_user(
 @require_access
 async def systems_add_vulnerability(
     request: Request, system_name: str, vulnerability: SystemVulnerabilityModel
-) -> SystemVulnerabilityModel:
+) -> SuccessModel:
     """
     **Requires authentication and system access with at least role reporter**
 
@@ -133,16 +136,49 @@ async def systems_add_vulnerability(
     - **cve**: CVE ID of the vulnerability to report
     """
     user_email = get_email_from_jwt(request)
-    added_vulnerability = await add_system_vulnerability(
+    await add_system_vulnerability(
         system_name.lower(), vulnerability.cve.lower(), user_email
     )
-    return SystemVulnerabilityModel(cve=added_vulnerability.cve.upper())
+    return SuccessModel(success=True)
+
+
+@APP.post(
+    path="/systems/{system_name}/update_vuln_state",
+    response_model=SuccessModel,
+    status_code=200,
+    tags=[PathTags.SYSTEMS.value],
+)
+@require_authentication
+@require_access
+async def systems_update_vulnerability_state(
+    request: Request,
+    system_name: str,
+    vulnerability: UpdateSystemVulnerabilityModel
+) -> SuccessModel:
+    """
+    **Requires authentication and system access with at least role reporter**
+
+    Update the state of a vulnerability, either to open it or to remediate it
+
+    - **cve**: CVE ID of the vulnerability to update
+    - **state**: New state of the vulnerability
+        - **open**
+        - **remediated**
+    """
+    user_email = get_email_from_jwt(request)
+    await update_system_vulnerability_state(
+        system_name.lower(),
+        vulnerability.cve.lower(),
+        vulnerability.state,
+        user_email
+    )
+    return SuccessModel(success=True)
 
 
 @APP.get(
-    path="/auth", response_model=AccessTokenModel, tags=[PathTags.AUTH.value]
+    path="/auth", response_model=SuccessTokenModel, tags=[PathTags.AUTH.value]
 )
-async def auth(request: Request) -> AccessTokenModel:
+async def auth(request: Request) -> SuccessTokenModel:
     """
     Endpoint used by Google OAuth after a successful authentication.
 
@@ -154,18 +190,7 @@ async def auth(request: Request) -> AccessTokenModel:
         raise ExternalAuthError() from exc
 
     user_info = token.get('userinfo')
-    logged_user, access_token = await handle_user_login(user_info)
-    response: AccessTokenModel
-    if access_token is None:
-        response = AccessTokenModel(user_id=logged_user.email)
-    else:
-        response = AccessTokenModel(
-            user_id=logged_user.email,
-            jwt_token=access_token.jwt,
-            expiration_date=get_from_timestamp(access_token.exp)
-        )
-
-    return response
+    return await handle_user_login(user_info)
 
 
 @APP.get(path="/login", status_code=302, tags=[PathTags.AUTH.value])
@@ -179,11 +204,15 @@ async def login(request: Request) -> Any:
 
 async def handle_user_login(
     user_info: Dict[str, Any]
-) -> Tuple[User, Optional[UserAccessToken]]:
-    access_token: Optional[UserAccessToken] = None
+) -> SuccessTokenModel:
     user_email: str = user_info["email"]
     user_name: str = user_info.get("name", "")
     user = await get_user(user_email)
     if user is None:
-        user, access_token = await create_user(user_email, user_name)
-    return user, access_token
+        access_token = await create_user(user_email, user_name)
+    expiration_date = user.access_token_exp if user else access_token.exp
+    return SuccessTokenModel(
+        success=True,
+        expiration_date=get_from_timestamp(expiration_date),
+        jwt_token=None if user else access_token.jwt
+    )

@@ -4,8 +4,9 @@ from custom_exceptions import (
     SystemAlreadyExists,
     SystemUserAlreadyExists,
     SystemVulnerabilityAlreadyExists,
+    SystemVulnerabilityDoesNotExist,
 )
-from utils import fetch_cve_info
+from utils import fetch_cve_info, get_now_as_iso
 from .dal import (
     add_system_user as dal_add_system_user,
     add_system_vulnerability as dal_add_system_vulnerability,
@@ -13,6 +14,7 @@ from .dal import (
     get_system as dal_get_system,
     get_system_user as dal_get_system_user,
     get_system_vulnerability as dal_get_system_vulnerability,
+    update_system_vulnerability as dal_update_system_vulnerability,
 )
 from .types import (
     CVEInfo,
@@ -21,6 +23,8 @@ from .types import (
     SystemUser,
     SystemVulnerability,
     SystemVulnerabilitySeverity,
+    SystemVulnerabilityState,
+    SystemVulnerabilityToUpdate,
 )
 
 
@@ -30,6 +34,7 @@ async def add_system_user(
     system_user = await get_system_user(system_name, email_to_add)
     if system_user is not None:
         raise SystemUserAlreadyExists
+
     system_user = await dal_add_system_user(
         system_name, email_to_add, role, added_by
     )
@@ -105,3 +110,25 @@ async def get_system_vulnerability(
     system_name: str, cve: str
 ) -> Optional[SystemVulnerability]:
     return await dal_get_system_vulnerability(system_name, cve)
+
+
+async def update_system_vulnerability_state(
+    system_name: str,
+    cve: str,
+    state: SystemVulnerabilityState,
+    user_email: str
+) -> None:
+    system_vulnerability = await get_system_vulnerability(system_name, cve)
+    if system_vulnerability is None:
+        raise SystemVulnerabilityDoesNotExist()
+
+    if system_vulnerability.state != state:
+        await dal_update_system_vulnerability(
+            system_vulnerability.system_name,
+            system_vulnerability.cve,
+            SystemVulnerabilityToUpdate(
+                modified_by=user_email,
+                modified_date=get_now_as_iso(),
+                state=state
+            )
+        )

@@ -58,3 +58,10 @@ class SystemVulnerabilityAlreadyExists(HTTPException):
 
     def __init__(self) -> None:
         super().__init__(status_code=400, detail=self.message)
+
+
+class SystemVulnerabilityDoesNotExist(HTTPException):
+    message = "Vulnerability does not exist in the system"
+
+    def __init__(self) -> None:
+        super().__init__(status_code=400, detail=self.message)
