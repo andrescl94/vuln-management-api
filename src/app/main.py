@@ -54,7 +54,7 @@ async def redirect_to_docs() -> RedirectResponse:
 
 
 @APP.post(
-    path="/systems/create/",
+    path="/systems/create",
     response_model=SystemModel,
     status_code=201,
     tags=[PathTags.SYSTEMS.value],
@@ -134,7 +134,7 @@ async def systems_add_vulnerability(
     """
     user_email = get_email_from_jwt(request)
     added_vulnerability = await add_system_vulnerability(
-        system_name, vulnerability.cve.lower(), user_email
+        system_name.lower(), vulnerability.cve.lower(), user_email
     )
     return SystemVulnerabilityModel(cve=added_vulnerability.cve.upper())
 
