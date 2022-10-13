@@ -1,6 +1,6 @@
 from typing import Optional
 
-from db import query, put_item
+from db import query, put_item, update_item
 from utils import get_now_as_iso
 from .types import (
     CVEInfo,
@@ -10,6 +10,7 @@ from .types import (
     SystemVulnerability,
     SystemVulnerabilitySeverity,
     SystemVulnerabilityState,
+    SystemVulnerabilityToUpdate,
 )
 
 
@@ -45,17 +46,9 @@ async def add_system_vulnerability(
         added_date=now,
         cve=cve,
         description=cve_info.description,
-        severity_hk=f"SYSTEM#{system_name}",
-        state_hk=f"SYSTEM#{system_name=}",
         modified_by=user_email,
         modified_date=now,
         references=cve_info.references,
-        severity_rk=(
-            f"SEVERITY#{cve_info.severity.value}"
-            if cve_info.severity
-            else None
-        ),
-        state_rk=f"STATE#{default_state.value}",
         severity=cve_info.severity,
         severity_score=cve_info.severity_score,
         state=default_state,
@@ -130,16 +123,9 @@ async def get_system_vulnerability(
             added_date=results[0]["added_date"],
             cve=results[0]["cve"],
             description=results[0]["description"],
-            severity_hk=results[0]["severity_hk"],
-            state_hk=results[0]["state_hk"],
             modified_by=results[0]["modified_by"],
             modified_date=results[0]["modified_date"],
             references=results[0]["references"],
-            severity_rk=(
-                results[0]["severity_rk"]
-                if results[0].get("severity_rk") else None
-            ),
-            state_rk=results[0]["state_rk"],
             severity=(
                 SystemVulnerabilitySeverity(results[0]["severity"])
                 if results[0].get("severity")
@@ -155,3 +141,13 @@ async def get_system_vulnerability(
         )
 
     return system_vulnerability
+
+
+async def update_system_vulnerability(
+    system_name: str,
+    cve: str,
+    update: SystemVulnerabilityToUpdate
+) -> None:
+    await update_item(
+        f"SYSTEM#{system_name}", f"CVE#{cve}", **update._asdict()
+    )

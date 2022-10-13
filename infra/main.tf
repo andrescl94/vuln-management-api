@@ -44,22 +44,6 @@ resource "aws_dynamodb_table" "vuln-management" {
     name ="rk"
     type = "S"
   }
-  attribute {
-    name = "severity_hk"
-    type = "S"
-  }
-  attribute {
-    name ="severity_rk"
-    type = "S"
-  }
-  attribute {
-    name = "state_hk"
-    type = "S"
-  }
-  attribute {
-    name ="state_rk"
-    type = "S"
-  }
 
   billing_mode = "PROVISIONED"
   read_capacity = 25
@@ -76,22 +60,6 @@ resource "aws_dynamodb_table" "vuln-management" {
     name = "main_index"
     hash_key = "hk"
     range_key = "rk"
-    projection_type = "ALL"
-    read_capacity = 25
-    write_capacity = 25
-  }
-  global_secondary_index {
-    name = "severity_index"
-    hash_key = "severity_hk"
-    range_key = "severity_rk"
-    projection_type = "ALL"
-    read_capacity = 25
-    write_capacity = 25
-  }
-  global_secondary_index {
-    name = "state_index"
-    hash_key = "state_hk"
-    range_key = "state_rk"
     projection_type = "ALL"
     read_capacity = 25
     write_capacity = 25

@@ -47,14 +47,16 @@ class SystemVulnerability(NamedTuple):
     added_date: str
     cve: str
     description: str
-    severity_hk: str
-    state_hk: str
     modified_by: str
     modified_date: str
     references: List[str]
-    severity_rk: Optional[str]
-    state_rk: str
     severity: Optional[SystemVulnerabilitySeverity]
     severity_score: Optional[float]
     state: SystemVulnerabilityState
     system_name: str
+
+
+class SystemVulnerabilityToUpdate(NamedTuple):
+    modified_by: str
+    modified_date: str
+    state: SystemVulnerabilityState
