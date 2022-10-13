@@ -24,6 +24,8 @@ async def put_item(hash_key: str, range_key: str, **kwargs: Any) -> None:
         table = await dynamo_resource.Table(TABLE_NAME)
         attrs: Any = {}
         for _key, _value in kwargs.items():
+            if _value is None:
+                continue
             if isinstance(_value, float):
                 attrs.update({_key: Decimal(str(_value))})
             elif isinstance(_value, Enum):

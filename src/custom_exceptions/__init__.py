@@ -10,6 +10,13 @@ class AccessDenied(HTTPException):
         super().__init__(status_code=401, detail=self.message)
 
 
+class CVEDoesNotExist(HTTPException):
+    message = "The CVE you provided does not exist in the NIST database"
+
+    def __init__(self) -> None:
+        super().__init__(status_code=400, detail=self.message)
+
+
 class MissingEnvVar(BaseException):
     def __init__(self, args: Tuple[Any, ...]) -> None:
         self.message = f"Missing {args[0]} environmental variable"
@@ -23,6 +30,15 @@ class ExternalAuthError(HTTPException):
         super().__init__(status_code=401, detail=self.message)
 
 
+class NISTAPIError(HTTPException):
+    message = (
+        "There was an error verifying the provided CVE. Please try again later"
+    )
+
+    def __init__(self) -> None:
+        super().__init__(status_code=503, detail=self.message)
+
+
 class SystemAlreadyExists(HTTPException):
     message = "System name is already in use"
 
@@ -32,6 +48,13 @@ class SystemAlreadyExists(HTTPException):
 
 class SystemUserAlreadyExists(HTTPException):
     message = "User already belongs to the system"
+
+    def __init__(self) -> None:
+        super().__init__(status_code=400, detail=self.message)
+
+
+class SystemVulnerabilityAlreadyExists(HTTPException):
+    message = "Vulnerability is already reported to the system"
 
     def __init__(self) -> None:
         super().__init__(status_code=400, detail=self.message)

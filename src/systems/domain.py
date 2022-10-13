@@ -1,13 +1,27 @@
 from typing import Optional
 
-from custom_exceptions import SystemAlreadyExists, SystemUserAlreadyExists
+from custom_exceptions import (
+    SystemAlreadyExists,
+    SystemUserAlreadyExists,
+    SystemVulnerabilityAlreadyExists,
+)
+from utils import fetch_cve_info
 from .dal import (
     add_system_user as dal_add_system_user,
+    add_system_vulnerability as dal_add_system_vulnerability,
     create_system as dal_create_system,
     get_system as dal_get_system,
     get_system_user as dal_get_system_user,
+    get_system_vulnerability as dal_get_system_vulnerability,
 )
-from .types import System, SystemRoles, SystemUser
+from .types import (
+    CVEInfo,
+    System,
+    SystemRoles,
+    SystemUser,
+    SystemVulnerability,
+    SystemVulnerabilitySeverity,
+)
 
 
 async def add_system_user(
@@ -21,6 +35,35 @@ async def add_system_user(
     )
 
     return system_user
+
+
+async def add_system_vulnerability(
+    system_name: str, cve: str, user_email: str
+) -> SystemVulnerability:
+    system_vulnerability = await get_system_vulnerability(system_name, cve)
+    if system_vulnerability is not None:
+        raise SystemVulnerabilityAlreadyExists()
+
+    if cve_data := await fetch_cve_info(cve):
+        system_vulnerability = await dal_add_system_vulnerability(
+            system_name,
+            cve,
+            user_email,
+            CVEInfo(
+                description=cve_data["description"],
+                references=cve_data["references"],
+                severity=(
+                    SystemVulnerabilitySeverity(cve_data["severity"])
+                    if cve_data["severity"] is not None else None
+                ),
+                severity_score=(
+                    float(cve_data["severity_score"])
+                    if cve_data["severity_score"] is not None else None
+                )
+            )
+        )
+
+    return system_vulnerability
 
 
 async def create_system(
@@ -56,3 +99,9 @@ async def get_system_user_role(
         system_role = system_user.role
 
     return system_role
+
+
+async def get_system_vulnerability(
+    system_name: str, cve: str
+) -> Optional[SystemVulnerability]:
+    return await dal_get_system_vulnerability(system_name, cve)
