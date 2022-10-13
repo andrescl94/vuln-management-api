@@ -27,7 +27,7 @@ def require_access(
     @functools.wraps(func)
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         request = kwargs["request"]
-        system_name = str(kwargs["system_name"])
+        system_name = str(kwargs["system_name"]).lower()
         user_email = get_email_from_jwt(cast(Request, request))
         user_role = await get_system_user_role(system_name, user_email)
         if user_role in AUTH_MODEL[func.__name__]:

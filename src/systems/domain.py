@@ -50,15 +50,15 @@ async def add_system_vulnerability(
             cve,
             user_email,
             CVEInfo(
-                description=cve_data["description"],
-                references=cve_data["references"],
+                description=cve_data.description,
+                references=cve_data.references,
                 severity=(
-                    SystemVulnerabilitySeverity(cve_data["severity"])
-                    if cve_data["severity"] is not None else None
+                    SystemVulnerabilitySeverity(cve_data.severity.severity)
+                    if cve_data.severity is not None else None
                 ),
                 severity_score=(
-                    float(cve_data["severity_score"])
-                    if cve_data["severity_score"] is not None else None
+                    cve_data.severity.severity_score
+                    if cve_data.severity is not None else None
                 )
             )
         )
