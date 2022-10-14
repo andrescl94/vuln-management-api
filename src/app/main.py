@@ -1,7 +1,7 @@
 from typing import Any, Dict, List
 
 from authlib.integrations.starlette_client import OAuth, OAuthError
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
@@ -41,6 +41,7 @@ from .models import (
     SystemUserModel,
     SystemVulnerabilityModel,
     UpdateSystemVulnerabilityModel,
+    VulnerabilityDetailsModel,
     VulnerabilitySummaryModel,
 )
 
@@ -110,7 +111,11 @@ async def systems_create(
 @require_authentication
 @require_access
 async def systems_get_vuln_summary(  # pylint: disable=unused-argument
-    request: Request, system_name: str
+    request: Request,
+    system_name: str,
+    detailed: bool = Query(
+        default=False, title="Flag set to retrieve a more detailed report"
+    )
 ) -> SystemSummaryModel:
     """
     **Requires authentication and system access**
@@ -118,8 +123,11 @@ async def systems_get_vuln_summary(  # pylint: disable=unused-argument
     Returns a summary with all the vulnerabilities
     reported in the system and their current state,
     classified by severity
+
+    - **detailed**: Boolean to set if you want to retrieve more details
+    about the report
     """
-    system_summary = await get_system_summary(system_name)
+    system_summary = await get_system_summary(system_name, detailed)
     return SystemSummaryModel(
         summary=VulnerabilitySummaryModel(
             total_vulns=system_summary.summary.total_vulns,
@@ -137,6 +145,21 @@ async def systems_get_vuln_summary(  # pylint: disable=unused-argument
                     total_remediated_vulns=(
                         severity_summary.summary.total_remediated_vulns
                     )
+                ),
+                details=(
+                    [
+                        VulnerabilityDetailsModel(
+                            cve=detail.cve,
+                            description=detail.description,
+                            references=detail.references,
+                            severity=detail.severity,
+                            severity_score=detail.severity_score,
+                            state=detail.state
+                        )
+                        for detail in severity_summary.details
+                    ]
+                    if severity_summary.details is not None
+                    else None
                 )
             )
             for severity_summary in system_summary.summary_by_severity

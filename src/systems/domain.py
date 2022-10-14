@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from custom_exceptions import (
     SystemAlreadyExists,
@@ -19,6 +19,8 @@ from .dal import (
 )
 from .types import (
     CVEInfo,
+    SeveritySummaryDict,
+    VulnerabilityDetails,
     VulnerabilitySummary,
     SeveritySummary,
     System,
@@ -94,13 +96,16 @@ async def get_system(name: str) -> Optional[System]:
     return await dal_get_system(name)
 
 
-async def get_system_summary(system_name: str) -> SystemSummary:
+async def get_system_summary(
+    system_name: str, detailed: bool
+) -> SystemSummary:
     vulns = await get_system_vulnerabilities(system_name)
-    summary = {
+    summary: Dict[str, SeveritySummaryDict] = {
         severity.name: {
             "total_vulns": 0,
             "total_open_vulns": 0,
-            "total_remediated_vulns": 0
+            "total_remediated_vulns": 0,
+            "details": []
         }
         for severity in SystemVulnerabilitySeverity
     }
@@ -116,6 +121,17 @@ async def get_system_summary(system_name: str) -> SystemSummary:
         elif vuln.state == SystemVulnerabilityState.REMEDIATED:
             summary[vuln.severity.name]["total_remediated_vulns"] += 1
             total_remediated_vuln += 1
+        if detailed:
+            summary[vuln.severity.name]["details"].append(
+                VulnerabilityDetails(
+                    cve=vuln.cve,
+                    description=vuln.description,
+                    references=vuln.references,
+                    severity=vuln.severity,
+                    severity_score=vuln.severity_score,
+                    state=vuln.state
+                )
+            )
 
     return SystemSummary(
         summary=VulnerabilitySummary(
@@ -132,7 +148,8 @@ async def get_system_summary(system_name: str) -> SystemSummary:
                     total_remediated_vulns=severity_summary[
                         "total_remediated_vulns"
                     ],
-                )
+                ),
+                details=severity_summary["details"] if detailed else None
             )
             for severity, severity_summary in summary.items()
         ]
