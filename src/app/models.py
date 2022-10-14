@@ -1,10 +1,13 @@
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
-from systems import SystemRoles
-from systems.types import SystemVulnerabilityState
+from systems import (
+    SystemRoles,
+    SystemVulnerabilityState,
+)
+from systems.types import SystemVulnerabilitySeverity
 
 
 class PathTags(Enum):
@@ -50,6 +53,34 @@ class SystemModel(BaseModel):  # pylint: disable=too-few-public-methods
 class SystemUserModel(BaseModel):  # pylint: disable=too-few-public-methods
     email: EmailStr
     role: SystemRoles
+
+
+class VulnerabilitySummaryModel(  # pylint: disable=too-few-public-methods
+    BaseModel
+):
+    total_vulns: int
+    total_open_vulns: int
+    total_remediated_vulns: int
+
+
+class SeveritySummaryModel(  # pylint: disable=too-few-public-methods
+    BaseModel
+):
+    severity: SystemVulnerabilitySeverity
+    summary: VulnerabilitySummaryModel
+
+
+class SystemSummaryModel(  # pylint: disable=too-few-public-methods
+    BaseModel
+):
+    summary: VulnerabilitySummaryModel
+    summary_by_severity: List[SeveritySummaryModel]
+
+
+class SystemSummaryOptionsModel(  # pylint: disable=too-few-public-methods
+    BaseModel
+):
+    detailed: bool = Field(default=False)
 
 
 class SystemVulnerabilityModel(  # pylint: disable=too-few-public-methods

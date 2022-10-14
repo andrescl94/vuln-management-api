@@ -9,10 +9,22 @@ class SystemRoles(Enum):
 
 
 class SystemVulnerabilitySeverity(Enum):
+    UNKNOWN: str = "unknown"
     LOW: str = "low"
     MEDIUM: str = "medium"
     HIGH: str = "high"
     CRITICAL: str = "critical"
+
+
+class VulnerabilitySummary(NamedTuple):
+    total_vulns: int = 0
+    total_open_vulns: int = 0
+    total_remediated_vulns: int = 0
+
+
+class SeveritySummary(NamedTuple):
+    severity: SystemVulnerabilitySeverity
+    summary: VulnerabilitySummary
 
 
 class SystemVulnerabilityState(Enum):
@@ -23,7 +35,7 @@ class SystemVulnerabilityState(Enum):
 class CVEInfo(NamedTuple):
     description: str
     references: List[str]
-    severity: Optional[SystemVulnerabilitySeverity]
+    severity: SystemVulnerabilitySeverity
     severity_score: Optional[float]
 
 
@@ -32,6 +44,11 @@ class System(NamedTuple):
     creation_date: str
     description: str
     name: str
+
+
+class SystemSummary(NamedTuple):
+    summary: VulnerabilitySummary
+    summary_by_severity: List[SeveritySummary]
 
 
 class SystemUser(NamedTuple):
@@ -50,7 +67,7 @@ class SystemVulnerability(NamedTuple):
     modified_by: str
     modified_date: str
     references: List[str]
-    severity: Optional[SystemVulnerabilitySeverity]
+    severity: SystemVulnerabilitySeverity
     severity_score: Optional[float]
     state: SystemVulnerabilityState
     system_name: str

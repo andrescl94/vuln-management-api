@@ -16,6 +16,7 @@ from systems import (
     add_system_user,
     add_system_vulnerability,
     create_system,
+    get_system_summary,
     update_system_vulnerability_state,
 )
 from users import create_user, get_user
@@ -31,13 +32,16 @@ from .decorators import (
 )
 from .models import (
     PathTags,
+    SeveritySummaryModel,
     SuccessModel,
     SuccessTokenModel,
     SuccessWriteItemModel,
     SystemModel,
+    SystemSummaryModel,
     SystemUserModel,
     SystemVulnerabilityModel,
     UpdateSystemVulnerabilityModel,
+    VulnerabilitySummaryModel,
 )
 
 
@@ -95,6 +99,49 @@ async def systems_create(
     user_email = get_email_from_jwt(request)
     await create_system(system.name.lower(), system.description, user_email)
     return SuccessModel(success=True)
+
+
+@APP.get(
+    path="/systems/{system_name}/get_vuln_summary",
+    response_model=SystemSummaryModel,
+    status_code=200,
+    tags=[PathTags.SYSTEMS.value]
+)
+@require_authentication
+@require_access
+async def systems_get_vuln_summary(  # pylint: disable=unused-argument
+    request: Request, system_name: str
+) -> SystemSummaryModel:
+    """
+    **Requires authentication and system access**
+
+    Returns a summary with all the vulnerabilities
+    reported in the system and their current state,
+    classified by severity
+    """
+    system_summary = await get_system_summary(system_name)
+    return SystemSummaryModel(
+        summary=VulnerabilitySummaryModel(
+            total_vulns=system_summary.summary.total_vulns,
+            total_open_vulns=system_summary.summary.total_open_vulns,
+            total_remediated_vulns=(
+                system_summary.summary.total_remediated_vulns
+            )
+        ),
+        summary_by_severity=[
+            SeveritySummaryModel(
+                severity=severity_summary.severity,
+                summary=VulnerabilitySummaryModel(
+                    total_vulns=severity_summary.summary.total_vulns,
+                    total_open_vulns=severity_summary.summary.total_open_vulns,
+                    total_remediated_vulns=(
+                        severity_summary.summary.total_remediated_vulns
+                    )
+                )
+            )
+            for severity_summary in system_summary.summary_by_severity
+        ]
+    )
 
 
 @APP.post(

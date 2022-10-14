@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from custom_exceptions import (
     SystemAlreadyExists,
@@ -14,12 +14,16 @@ from .dal import (
     get_system as dal_get_system,
     get_system_user as dal_get_system_user,
     get_system_vulnerability as dal_get_system_vulnerability,
+    get_system_vulnerabilities as dal_get_system_vulnerabilities,
     update_system_vulnerability as dal_update_system_vulnerability,
 )
 from .types import (
     CVEInfo,
+    VulnerabilitySummary,
+    SeveritySummary,
     System,
     SystemRoles,
+    SystemSummary,
     SystemUser,
     SystemVulnerability,
     SystemVulnerabilitySeverity,
@@ -59,7 +63,8 @@ async def add_system_vulnerability(
                 references=cve_data.references,
                 severity=(
                     SystemVulnerabilitySeverity(cve_data.severity.severity)
-                    if cve_data.severity is not None else None
+                    if cve_data.severity is not None
+                    else SystemVulnerabilitySeverity("unkown")
                 ),
                 severity_score=(
                     cve_data.severity.severity_score
@@ -89,6 +94,51 @@ async def get_system(name: str) -> Optional[System]:
     return await dal_get_system(name)
 
 
+async def get_system_summary(system_name: str) -> SystemSummary:
+    vulns = await get_system_vulnerabilities(system_name)
+    summary = {
+        severity.name: {
+            "total_vulns": 0,
+            "total_open_vulns": 0,
+            "total_remediated_vulns": 0
+        }
+        for severity in SystemVulnerabilitySeverity
+    }
+    total_vulns: int = 0
+    total_open_vulns: int = 0
+    total_remediated_vuln: int = 0
+    for vuln in vulns:
+        summary[vuln.severity.name]["total_vulns"] += 1
+        total_vulns += 1
+        if vuln.state == SystemVulnerabilityState.OPEN:
+            summary[vuln.severity.name]["total_open_vulns"] += 1
+            total_open_vulns += 1
+        elif vuln.state == SystemVulnerabilityState.REMEDIATED:
+            summary[vuln.severity.name]["total_remediated_vulns"] += 1
+            total_remediated_vuln += 1
+
+    return SystemSummary(
+        summary=VulnerabilitySummary(
+            total_vulns=total_vulns,
+            total_open_vulns=total_open_vulns,
+            total_remediated_vulns=total_remediated_vuln
+        ),
+        summary_by_severity=[
+            SeveritySummary(
+                severity=SystemVulnerabilitySeverity[severity],
+                summary=VulnerabilitySummary(
+                    total_vulns=severity_summary["total_vulns"],
+                    total_open_vulns=severity_summary["total_open_vulns"],
+                    total_remediated_vulns=severity_summary[
+                        "total_remediated_vulns"
+                    ],
+                )
+            )
+            for severity, severity_summary in summary.items()
+        ]
+    )
+
+
 async def get_system_user(
     system_name: str, email: str
 ) -> Optional[SystemUser]:
@@ -110,6 +160,12 @@ async def get_system_vulnerability(
     system_name: str, cve: str
 ) -> Optional[SystemVulnerability]:
     return await dal_get_system_vulnerability(system_name, cve)
+
+
+async def get_system_vulnerabilities(
+    system_name: str
+) -> List[SystemVulnerability]:
+    return await dal_get_system_vulnerabilities(system_name)
 
 
 async def update_system_vulnerability_state(

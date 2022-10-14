@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from db import query, put_item, update_item
 from utils import get_now_as_iso
@@ -12,6 +12,26 @@ from .types import (
     SystemVulnerabilityState,
     SystemVulnerabilityToUpdate,
 )
+
+
+def _format_system_vulnerability(item: Dict[str, Any]) -> SystemVulnerability:
+    return SystemVulnerability(
+        added_by=item["added_by"],
+        added_date=item["added_date"],
+        cve=item["cve"],
+        description=item["description"],
+        modified_by=item["modified_by"],
+        modified_date=item["modified_date"],
+        references=item["references"],
+        severity=SystemVulnerabilitySeverity(item["severity"]),
+        severity_score=(
+            float(item["severity_score"])
+            if item.get("severity_score")
+            else None
+        ),
+        state=SystemVulnerabilityState(item["state"]),
+        system_name=item["system_name"]
+    )
 
 
 async def add_system_user(
@@ -118,29 +138,23 @@ async def get_system_vulnerability(
     system_vulnerability: Optional[SystemVulnerability] = None
     results = await query(f"SYSTEM#{system_name}", f"CVE#{cve}")
     if results:
-        system_vulnerability = SystemVulnerability(
-            added_by=results[0]["added_by"],
-            added_date=results[0]["added_date"],
-            cve=results[0]["cve"],
-            description=results[0]["description"],
-            modified_by=results[0]["modified_by"],
-            modified_date=results[0]["modified_date"],
-            references=results[0]["references"],
-            severity=(
-                SystemVulnerabilitySeverity(results[0]["severity"])
-                if results[0].get("severity")
-                else None
-            ),
-            severity_score=(
-                float(results[0]["severity_score"])
-                if results[0].get("severity_score")
-                else None
-            ),
-            state=SystemVulnerabilityState(results[0]["state"]),
-            system_name=results[0]["system_name"]
-        )
+        system_vulnerability = _format_system_vulnerability(results[0])
 
     return system_vulnerability
+
+
+async def get_system_vulnerabilities(
+    system_name: str
+) -> List[SystemVulnerability]:
+    system_vulnerabilities: List[SystemVulnerability] = []
+    results = await query(f"SYSTEM#{system_name}", "CVE#", False)
+    if results:
+        system_vulnerabilities = [
+            _format_system_vulnerability(result)
+            for result in results
+        ]
+
+    return system_vulnerabilities
 
 
 async def update_system_vulnerability(
