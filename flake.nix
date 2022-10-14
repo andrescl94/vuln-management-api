@@ -43,17 +43,42 @@
             ];
             shellHook = ''
               export PYTHONPATH="$(pwd)/src:$PYTHONPATH"
+              export AWS_ACCESS_KEY_ID="testKey"
+              export AWS_SECRET_ACCESS_KEY="secretKey"
+              export AWS_DEFAULT_REGION="us-east-1"
+              export JWE_ENCRYPTION_KEY='{"k":"ila0UViizq2Aqk7H4Duai-9sYTHbUXkKp0elOFbYTkE","kty":"oct"}'
+              export JWT_SIGNING_KEY="c10c5cde58a9e4396b00f824673bebd5cb9686b4f6ceba197f1d4dbf61e585be5ac366d484831fd60114f95093fc4d76c53bc97035e25cfe31eec20f2d0a8527"
+              export OAUTH_GOOGLE_CLIENT_ID="960572939057-p40kke46pr4acakcnpil52igbtl875h1.apps.googleusercontent.com"
+              export OAUTH_GOOGLE_SECRET="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"
             '';
           };
           apps = {
-            deployDynamoDb = {
-              program = "${self.packages.${system}.dynamoDb}/run.sh";
+            default = {
+              program = "${self.packages.${system}.api}/bin/vuln-api";
               type = "app";
-            }; 
+            };
+            deployDynamoDb = {
+              program = "${self.packages.${system}.dynamoDb}/bin/dynamodb-local";
+              type = "app";
+            };
           };
           packages = {
-            dynamoDb = with pkgs; builtins.derivation {
+            api = with pkgs; builtins.derivation {
               inherit projectSrc system;
+              args = [./builders/api.sh];
+              bash = "${bash}";
+              buildInputs = [
+                coreutils
+                "${self.packages.${system}.dynamoDb}"
+                gnused
+                pyenvRun
+              ];
+              builder = "${bash}/bin/bash";
+              entrypoint = ./builders/api_entrypoint.sh;
+              name = "api";
+            };
+            dynamoDb = with pkgs; builtins.derivation {
+              inherit system;
               args = [./builders/dynamodb.sh];
               bash = "${bash}";
               buildInputs = [
@@ -73,6 +98,13 @@
               entrypoint = ./builders/dynamodb_entrypoint.sh;
               name = "dynamodb";
               src = ./infra;
+            };
+            docker = with pkgs; dockerTools.buildLayeredImage {
+              name = "vuln-api";
+              contents = [ "${self.packages.${system}.api}" ];
+              config = {
+                Cmd = [ "/bin/vuln-api" ];
+              };
             };
             lintPython = with pkgs; builtins.derivation {
               inherit projectSrc system;

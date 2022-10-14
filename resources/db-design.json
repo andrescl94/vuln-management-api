@@ -1,0 +1,216 @@
+{
+  "ModelName": "vuln-management",
+  "ModelMetadata": {
+    "Author": "Andres Cuberos",
+    "DateCreated": "Oct 09, 2022, 03:10 PM",
+    "DateLastModified": "Oct 13, 2022, 12:53 AM",
+    "Description": "Database model for vuln-management-api",
+    "AWSService": "Amazon DynamoDB",
+    "Version": "3.0"
+  },
+  "DataModel": [
+    {
+      "TableName": "vuln-management",
+      "KeyAttributes": {
+        "PartitionKey": {
+          "AttributeName": "hk",
+          "AttributeType": "S"
+        },
+        "SortKey": {
+          "AttributeName": "rk",
+          "AttributeType": "S"
+        }
+      },
+      "NonKeyAttributes": [
+        {
+          "AttributeName": "last_login",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "registration_date",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "email",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "name",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "access_token_exp",
+          "AttributeType": "N"
+        },
+        {
+          "AttributeName": "access_token_jti",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "createdy_by",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "creation_date",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "description",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "added_by",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "added_date",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "role",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "system_name",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "modified_by",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "modified_date",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "cve",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "state",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "severity",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "severity_score",
+          "AttributeType": "N"
+        },
+        {
+          "AttributeName": "references",
+          "AttributeType": "L"
+        }
+      ],
+      "TableFacets": [
+        {
+          "FacetName": "user",
+          "KeyAttributeAlias": {
+            "PartitionKeyAlias": "USER#email",
+            "SortKeyAlias": "USER#email"
+          },
+          "TableData": [],
+          "NonKeyAttributes": [
+            "last_login",
+            "registration_date",
+            "email",
+            "name",
+            "access_token_exp",
+            "access_token_jti"
+          ],
+          "DataAccess": {
+            "MySql": {}
+          }
+        },
+        {
+          "FacetName": "system",
+          "KeyAttributeAlias": {
+            "PartitionKeyAlias": "SYSTEM#name",
+            "SortKeyAlias": "SYSTEM#name"
+          },
+          "TableData": [],
+          "NonKeyAttributes": [
+            "name",
+            "createdy_by",
+            "creation_date",
+            "description"
+          ],
+          "DataAccess": {
+            "MySql": {}
+          }
+        },
+        {
+          "FacetName": "system_user",
+          "KeyAttributeAlias": {
+            "PartitionKeyAlias": "SYSTEM#name",
+            "SortKeyAlias": "USER#email"
+          },
+          "TableData": [],
+          "NonKeyAttributes": [
+            "email",
+            "added_by",
+            "added_date",
+            "role",
+            "system_name"
+          ],
+          "DataAccess": {
+            "MySql": {}
+          }
+        },
+        {
+          "FacetName": "system_vulnerability",
+          "KeyAttributeAlias": {
+            "PartitionKeyAlias": "SYSTEM#name",
+            "SortKeyAlias": "VULN#cve"
+          },
+          "TableData": [],
+          "NonKeyAttributes": [
+            "description",
+            "added_by",
+            "added_date",
+            "system_name",
+            "modified_by",
+            "modified_date",
+            "cve",
+            "state",
+            "severity",
+            "severity_score",
+            "references"
+          ],
+          "DataAccess": {
+            "MySql": {}
+          }
+        }
+      ],
+      "GlobalSecondaryIndexes": [
+        {
+          "IndexName": "main_index",
+          "KeyAttributes": {
+            "PartitionKey": {
+              "AttributeName": "hk",
+              "AttributeType": "S"
+            },
+            "SortKey": {
+              "AttributeName": "rk",
+              "AttributeType": "S"
+            }
+          },
+          "Projection": {
+            "ProjectionType": "ALL"
+          }
+        }
+      ],
+      "DataAccess": {
+        "MySql": {}
+      },
+      "BillingMode": "PROVISIONED",
+      "ProvisionedCapacitySettings": {
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": 25,
+          "WriteCapacityUnits": 25
+        }
+      }
+    }
+  ]
+}
