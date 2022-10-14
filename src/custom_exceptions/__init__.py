@@ -3,18 +3,44 @@ from typing import Any, Tuple
 from fastapi.exceptions import HTTPException
 
 
-class AccessDenied(HTTPException):
-    message = "Access denied"
+class CustomHTTPException(HTTPException):
+    message: str
 
+    def __init__(self, status_code: int, message: str) -> None:
+        self.message = message
+        super().__init__(status_code=status_code, detail=self.message)
+
+
+class CustomExternalException(CustomHTTPException):
+    extra: Tuple[Any, ...]
+
+    def __init__(self, message: str, args: Tuple[Any, ...]) -> None:
+        self.extra = args
+        super().__init__(status_code=503, message=message)
+
+
+class AccessDenied(CustomHTTPException):
     def __init__(self) -> None:
-        super().__init__(status_code=401, detail=self.message)
+        message = "Access denied"
+        super().__init__(status_code=401, message=message)
 
 
-class CVEDoesNotExist(HTTPException):
-    message = "The CVE you provided does not exist in the NIST database"
-
+class CVEDoesNotExist(CustomHTTPException):
     def __init__(self) -> None:
-        super().__init__(status_code=400, detail=self.message)
+        message = "The CVE you provided does not exist in the NIST database"
+        super().__init__(status_code=400, message=message)
+
+
+class DynamoDBException(CustomExternalException):
+    def __init__(self, args: Tuple[Any, ...]) -> None:
+        message = "There was an error in the request to the database"
+        super().__init__(message=message, args=args)
+
+
+class MaxItemsLimit(CustomHTTPException):
+    def __init__(self) -> None:
+        message = "Bulk operations have a limit of 20 items"
+        super().__init__(status_code=400, message=message)
 
 
 class MissingEnvVar(BaseException):
@@ -23,45 +49,43 @@ class MissingEnvVar(BaseException):
         super().__init__(self.message)
 
 
-class ExternalAuthError(HTTPException):
-    message = "There was an error during your Google authentication"
+class ExternalAuthError(CustomExternalException):
+    def __init__(self, args: Tuple[Any, ...]) -> None:
+        message = "There was an error during your Google authentication"
+        super().__init__(message=message, args=args)
 
+
+class NISTAPIError(CustomExternalException):
+    def __init__(self, args: Tuple[Any, ...]) -> None:
+        message = "There was an error querying the NIST API. Try again later"
+        super().__init__(message=message, args=args)
+
+
+class NISTResponseError(CustomHTTPException):
     def __init__(self) -> None:
-        super().__init__(status_code=401, detail=self.message)
+        message = "The request from the NIST API dit not finish successfully"
+        super().__init__(status_code=503, message=message)
 
 
-class NISTAPIError(HTTPException):
-    message = (
-        "There was an error verifying the provided CVE. Please try again later"
-    )
-
+class SystemAlreadyExists(CustomHTTPException):
     def __init__(self) -> None:
-        super().__init__(status_code=503, detail=self.message)
+        message = "System name is already in use"
+        super().__init__(status_code=400, message=message)
 
 
-class SystemAlreadyExists(HTTPException):
-    message = "System name is already in use"
-
+class SystemUserAlreadyExists(CustomHTTPException):
     def __init__(self) -> None:
-        super().__init__(status_code=400, detail=self.message)
+        message = "User already belongs to the system"
+        super().__init__(status_code=400, message=message)
 
 
-class SystemUserAlreadyExists(HTTPException):
-    message = "User already belongs to the system"
-
+class SystemVulnerabilityAlreadyExists(CustomHTTPException):
     def __init__(self) -> None:
-        super().__init__(status_code=400, detail=self.message)
+        message = "Vulnerability is already reported to the system"
+        super().__init__(status_code=400, message=message)
 
 
-class SystemVulnerabilityAlreadyExists(HTTPException):
-    message = "Vulnerability is already reported to the system"
-
+class SystemVulnerabilityDoesNotExist(CustomHTTPException):
     def __init__(self) -> None:
-        super().__init__(status_code=400, detail=self.message)
-
-
-class SystemVulnerabilityDoesNotExist(HTTPException):
-    message = "Vulnerability does not exist in the system"
-
-    def __init__(self) -> None:
-        super().__init__(status_code=400, detail=self.message)
+        message = "Vulnerability does not exist in the system"
+        super().__init__(status_code=400, message=message)

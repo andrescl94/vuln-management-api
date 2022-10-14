@@ -16,6 +16,13 @@ class SuccessModel(BaseModel):  # pylint: disable=too-few-public-methods
     success: bool
 
 
+class SuccessWriteItemModel(  # pylint: disable=too-few-public-methods
+    SuccessModel
+):
+    details: str
+    item: str
+
+
 class SuccessTokenModel(  # pylint: disable=too-few-public-methods
     SuccessModel
 ):

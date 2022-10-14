@@ -7,6 +7,7 @@ import aiohttp
 from custom_exceptions import (
     CVEDoesNotExist,
     NISTAPIError,
+    NISTResponseError,
 )
 
 
@@ -26,22 +27,38 @@ class NISTResponse(NamedTuple):
 
 
 async def fetch_cve_info(cve: str) -> NISTResponse:
-    async with aiohttp.ClientSession() as session:
-        async with session.get(f"{NIST_URL}?cveId={cve.upper()}") as response:
-            if response.status != 200:
-                raise NISTAPIError()
-            result = await response.json()
-            if result["totalResults"] == 0:
-                raise CVEDoesNotExist()
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"{NIST_URL}?cveId={cve.upper()}"
+            ) as response:
+                if response.status != 200:
+                    raise NISTResponseError()
+                result = await response.json()
+                if result["totalResults"] == 0:
+                    raise CVEDoesNotExist()
 
-            vulnerability: Dict[str, Any] = result["vulnerabilities"][0]["cve"]
-            severity = get_severity_from_nist(vulnerability.get("metrics", {}))
+                vulnerability: Dict[str, Any] = result["vulnerabilities"][0][
+                    "cve"
+                ]
+                severity = get_severity_from_nist(
+                    vulnerability.get("metrics", {})
+                )
 
-            return NISTResponse(
-                description=vulnerability["descriptions"][0]["value"],
-                severity=severity,
-                references=[ref["url"] for ref in vulnerability["references"]]
-            )
+                return NISTResponse(
+                    description=vulnerability["descriptions"][0]["value"],
+                    severity=severity,
+                    references=[
+                        ref["url"] for ref in vulnerability["references"]
+                    ]
+                )
+    except Exception as exc:
+        if any(
+            isinstance(exc, exec_type)
+            for exec_type in [CVEDoesNotExist, NISTResponseError]
+        ):
+            raise exc
+        raise NISTAPIError(exc.args) from exc
 
 
 def get_from_timestamp(timestamp: float) -> str:

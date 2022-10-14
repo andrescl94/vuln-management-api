@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import FastAPI, Request
@@ -20,11 +20,17 @@ from systems import (
 )
 from users import create_user, get_user
 from utils import get_from_timestamp
-from .decorators import require_access, require_authentication
+from .bulk import add_system_vulnerabilities_bulk
+from .decorators import (
+    enforce_items_limit,
+    require_access,
+    require_authentication,
+)
 from .models import (
     PathTags,
     SuccessModel,
     SuccessTokenModel,
+    SuccessWriteItemModel,
     SystemModel,
     SystemUserModel,
     SystemVulnerabilityModel,
@@ -132,7 +138,6 @@ async def systems_add_vulnerability(
     **Requires authentication and system access with at least role reporter**
 
     Report a vulnerability with the provided information to the system
-
     - **cve**: CVE ID of the vulnerability to report
     """
     user_email = get_email_from_jwt(request)
@@ -140,6 +145,39 @@ async def systems_add_vulnerability(
         system_name.lower(), vulnerability.cve.lower(), user_email
     )
     return SuccessModel(success=True)
+
+
+@APP.post(
+    path="/systems/{system_name}/report_vulns_bulk",
+    response_model=List[SuccessWriteItemModel],
+    status_code=200,
+    tags=[PathTags.SYSTEMS.value],
+)
+@require_authentication
+@require_access
+@enforce_items_limit
+async def systems_add_vulnerabilities_bulk(
+    request: Request,
+    system_name: str,
+    vulnerabilities: List[SystemVulnerabilityModel]
+) -> List[SuccessWriteItemModel]:
+    """
+    **Requires authentication and system access with at least role reporter**
+
+    Report vulnerabilities with the provided information to the system.
+    There is a limit of 20 items per call
+
+    - **cve**: CVE ID of the vulnerability to report
+
+    Individual items may fail to be added,
+    so be sure to check the response for more information
+    """
+    user_email = get_email_from_jwt(request)
+    return await add_system_vulnerabilities_bulk(
+        system_name.lower(),
+        _remove_duplicates([vuln.cve.lower() for vuln in vulnerabilities]),
+        user_email
+    )
 
 
 @APP.post(
@@ -187,7 +225,7 @@ async def auth(request: Request) -> SuccessTokenModel:
     try:
         token = await OAUTH.google.authorize_access_token(request)
     except OAuthError as exc:
-        raise ExternalAuthError() from exc
+        raise ExternalAuthError(exc.args) from exc
 
     user_info = token.get('userinfo')
     return await handle_user_login(user_info)
@@ -216,3 +254,12 @@ async def handle_user_login(
         expiration_date=get_from_timestamp(expiration_date),
         jwt_token=None if user else access_token.jwt
     )
+
+
+def _remove_duplicates(items: List[str]) -> List[str]:
+    unique_items: List[str] = []
+    for item in items:
+        if item not in unique_items:
+            unique_items.append(item)
+
+    return unique_items
