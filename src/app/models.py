@@ -55,6 +55,17 @@ class SystemUserModel(BaseModel):  # pylint: disable=too-few-public-methods
     role: SystemRoles
 
 
+class VulnerabilityDetailsModel(  # pylint: disable=too-few-public-methods
+    BaseModel
+):
+    cve: str
+    description: str
+    references: List[str]
+    severity: SystemVulnerabilitySeverity
+    severity_score: Optional[float]
+    state: SystemVulnerabilityState
+
+
 class VulnerabilitySummaryModel(  # pylint: disable=too-few-public-methods
     BaseModel
 ):
@@ -68,6 +79,7 @@ class SeveritySummaryModel(  # pylint: disable=too-few-public-methods
 ):
     severity: SystemVulnerabilitySeverity
     summary: VulnerabilitySummaryModel
+    details: Optional[List[VulnerabilityDetailsModel]]
 
 
 class SystemSummaryModel(  # pylint: disable=too-few-public-methods
@@ -75,12 +87,6 @@ class SystemSummaryModel(  # pylint: disable=too-few-public-methods
 ):
     summary: VulnerabilitySummaryModel
     summary_by_severity: List[SeveritySummaryModel]
-
-
-class SystemSummaryOptionsModel(  # pylint: disable=too-few-public-methods
-    BaseModel
-):
-    detailed: bool = Field(default=False)
 
 
 class SystemVulnerabilityModel(  # pylint: disable=too-few-public-methods

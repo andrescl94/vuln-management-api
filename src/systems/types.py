@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, NamedTuple, Optional
+from typing import List, NamedTuple, Optional, TypedDict
 
 
 class SystemRoles(Enum):
@@ -16,17 +16,6 @@ class SystemVulnerabilitySeverity(Enum):
     CRITICAL: str = "critical"
 
 
-class VulnerabilitySummary(NamedTuple):
-    total_vulns: int = 0
-    total_open_vulns: int = 0
-    total_remediated_vulns: int = 0
-
-
-class SeveritySummary(NamedTuple):
-    severity: SystemVulnerabilitySeverity
-    summary: VulnerabilitySummary
-
-
 class SystemVulnerabilityState(Enum):
     OPEN: str = "open"
     REMEDIATED: str = "remediated"
@@ -37,6 +26,34 @@ class CVEInfo(NamedTuple):
     references: List[str]
     severity: SystemVulnerabilitySeverity
     severity_score: Optional[float]
+
+
+class VulnerabilityDetails(NamedTuple):
+    cve: str
+    description: str
+    references: List[str]
+    severity: SystemVulnerabilitySeverity
+    severity_score: Optional[float]
+    state: SystemVulnerabilityState
+
+
+class VulnerabilitySummary(NamedTuple):
+    total_vulns: int = 0
+    total_open_vulns: int = 0
+    total_remediated_vulns: int = 0
+
+
+class SeveritySummary(NamedTuple):
+    severity: SystemVulnerabilitySeverity
+    summary: VulnerabilitySummary
+    details: Optional[List[VulnerabilityDetails]]
+
+
+class SeveritySummaryDict(TypedDict):
+    total_vulns: int
+    total_open_vulns: int
+    total_remediated_vulns: int
+    details: List[VulnerabilityDetails]
 
 
 class System(NamedTuple):
