@@ -4,7 +4,7 @@ from typing import Awaitable, Callable, Dict, List, ParamSpec, TypeVar, cast
 
 from fastapi import Request
 
-from custom_exceptions import AccessDenied
+from custom_exceptions import AccessDenied, MaxItemsLimit
 from jwt_token import get_email_from_jwt
 from systems import SystemRoles, get_system_user_role
 from users import verify_user_jwt_token
@@ -17,10 +17,27 @@ R = TypeVar("R")
 AUTH_MODEL: Dict[str, List[SystemRoles]] = {
     "systems_add_user": [SystemRoles.OWNER],
     "systems_add_vulnerability": [SystemRoles.OWNER, SystemRoles.REPORTER],
+    "systems_add_vulnerabilities_bulk": [
+        SystemRoles.OWNER, SystemRoles.REPORTER
+    ],
     "systems_update_vulnerability_state": [
         SystemRoles.OWNER, SystemRoles.REPORTER
     ],
 }
+
+
+def enforce_items_limit(
+    func: Callable[P, Awaitable[R]]
+) -> Callable[P, Awaitable[R]]:
+
+    @functools.wraps(func)
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        for value in kwargs.values():
+            if isinstance(value, list) and len(value) > 20:
+                raise MaxItemsLimit()
+        return await func(*args, **kwargs)
+
+    return wrapper
 
 
 def require_access(
