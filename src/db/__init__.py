@@ -47,7 +47,14 @@ async def put_item(hash_key: str, range_key: str, **kwargs: Any) -> None:
         raise DynamoDBException(exc.args) from exc
 
 
-async def query(hash_key: str, range_key: str) -> List[Dict[str, Any]]:
+async def query(
+    hash_key: str, range_key: str, exact: bool = True
+) -> List[Dict[str, Any]]:
+    key_expression = (
+        Key("hk").eq(hash_key) & Key("rk").eq(range_key)
+        if exact
+        else Key("hk").eq(hash_key) & Key("rk").begins_with(range_key)
+    )
     try:
         results: List[Dict[str, Any]] = []
         async with SESSION.resource(
@@ -55,9 +62,7 @@ async def query(hash_key: str, range_key: str) -> List[Dict[str, Any]]:
         ) as dynamo_resource:
             table = await dynamo_resource.Table(TABLE_NAME)
             response = await table.query(
-                KeyConditionExpression=(
-                    Key("hk").eq(hash_key) & Key("rk").begins_with(range_key)
-                )
+                KeyConditionExpression=key_expression
             )
             results = response["Items"]
 

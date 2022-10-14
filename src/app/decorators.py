@@ -15,6 +15,9 @@ R = TypeVar("R")
 
 
 AUTH_MODEL: Dict[str, List[SystemRoles]] = {
+    "systems_get_vuln_summary": [
+        SystemRoles.OWNER, SystemRoles.REPORTER, SystemRoles.VIEWER
+    ],
     "systems_add_user": [SystemRoles.OWNER],
     "systems_add_vulnerabilities_bulk": [
         SystemRoles.OWNER, SystemRoles.REPORTER
