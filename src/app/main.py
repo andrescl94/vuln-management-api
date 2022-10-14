@@ -2,7 +2,6 @@ from typing import Any, Dict, List
 
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import FastAPI, Query, Request
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -47,7 +46,6 @@ from .models import (
 
 
 APP = FastAPI()
-APP.add_middleware(HTTPSRedirectMiddleware)
 APP.add_middleware(
     SessionMiddleware,
     secret_key="secret",
