@@ -20,7 +20,10 @@ from systems import (
 )
 from users import create_user, get_user
 from utils import get_from_timestamp
-from .bulk import add_system_vulnerabilities_bulk
+from .bulk import (
+    add_system_vulnerabilities_bulk,
+    update_system_vulnerabilities_state_bulk,
+)
 from .decorators import (
     enforce_items_limit,
     require_access,
@@ -213,6 +216,47 @@ async def systems_update_vulnerability_state(
     return SuccessModel(success=True)
 
 
+@APP.post(
+    path="/systems/{system_name}/update_vulns_state_bulk",
+    response_model=List[SuccessWriteItemModel],
+    status_code=200,
+    tags=[PathTags.SYSTEMS.value],
+)
+@require_authentication
+@require_access
+@enforce_items_limit
+async def systems_update_vulnerabilities_state_bulk(
+    request: Request,
+    system_name: str,
+    vulnerabilities: List[UpdateSystemVulnerabilityModel]
+) -> List[SuccessWriteItemModel]:
+    """
+    **Requires authentication and system access with at least role reporter**
+
+    Update the state of vulnerabilities in bulk,
+    either to open them or to remediate them
+
+    - **cve**: CVE ID of the vulnerability to update
+    - **state**: New state of the vulnerability
+        - **open**
+        - **remediated**
+    """
+    user_email = get_email_from_jwt(request)
+    return await update_system_vulnerabilities_state_bulk(
+        system_name.lower(),
+        _remove_duplicates(
+            [
+                UpdateSystemVulnerabilityModel(
+                    cve=vuln.cve.lower(),
+                    state=vuln.state
+                )
+                for vuln in vulnerabilities
+            ]
+        ),
+        user_email
+    )
+
+
 @APP.get(
     path="/auth", response_model=SuccessTokenModel, tags=[PathTags.AUTH.value]
 )
@@ -256,8 +300,8 @@ async def handle_user_login(
     )
 
 
-def _remove_duplicates(items: List[str]) -> List[str]:
-    unique_items: List[str] = []
+def _remove_duplicates(items: List[Any]) -> List[Any]:
+    unique_items: List[Any] = []
     for item in items:
         if item not in unique_items:
             unique_items.append(item)
