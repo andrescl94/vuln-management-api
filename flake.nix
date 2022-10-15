@@ -61,6 +61,10 @@
               program = "${self.packages.${system}.dynamoDb}/bin/dynamodb-local";
               type = "app";
             };
+            testPython = {
+              program = "${self.packages.${system}.testPython}/bin/test-python";
+              type = "app";
+            };
           };
           packages = {
             api = with pkgs; builtins.derivation {
@@ -120,14 +124,16 @@
               pythonExecutable = "${pyenvRun}/bin/python";
             };
             testPython = with pkgs; builtins.derivation {
-              inherit projectSrc system;
+              inherit system;
               args = [./builders/test_python.sh];
               buildInputs = [
                 coreutils
+                gnused
                 pyenvDev
                 pyenvRun
               ];
               builder = "${bash}/bin/bash";
+              entrypoint = ./builders/test_python_entrypoint.sh;
               name = "test-python-code";
             };
           };
