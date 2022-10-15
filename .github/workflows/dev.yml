@@ -25,7 +25,22 @@ jobs:
         with:
           name: vuln-management-api
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-      - run: nix build -L .#testPython
+      - with:
+          codecov_token: '${{ secrets.CODECOV_TOKEN }}'
+        run: |
+          nix run .#testPython
+
+          # Setup CodeCov
+          curl https://uploader.codecov.io/verification.gpg | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+          curl -Os https://uploader.codecov.io/latest/linux/codecov
+          curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
+          curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM.sig
+          gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+          shasum -a 256 -c codecov.SHA256SUM
+          chmod +x codecov
+
+          ./codecov -t ${INPUT_CODECOV_TOKEN}
+
 name: dev
 permissions: read-all
 on:
