@@ -25,7 +25,10 @@ jobs:
         with:
           name: vuln-management-api
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-      - run: nix build -L .#testPython
+      - env:
+          CODECOV_TOKEN: '${{ secrets.CODECOV_TOKEN }}'
+        run: nix run .#testPython
+
 name: dev
 permissions: read-all
 on:

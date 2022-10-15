@@ -1,5 +1,7 @@
 # Vulnerabilit Management API
 
+[![codecov](https://codecov.io/gh/andrescl94/vuln-management-api/branch/main/graph/badge.svg?token=M8KNFWVJHV)](https://codecov.io/gh/andrescl94/vuln-management-api)
+
 This repository contains the code to deploy an API
 that lets you manage the known vulnerabilities of a system.
 
