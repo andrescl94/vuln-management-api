@@ -108,7 +108,7 @@
             };
             lintPython = with pkgs; builtins.derivation {
               inherit projectSrc system;
-              args = [./builders/python_linter.sh];
+              args = [./builders/lint_python.sh];
               buildInputs = [
                 coreutils
                 python310Packages.setuptools
@@ -118,6 +118,17 @@
               builder = "${bash}/bin/bash";
               name = "lint-python-code";
               pythonExecutable = "${pyenvRun}/bin/python";
+            };
+            testPython = with pkgs; builtins.derivation {
+              inherit projectSrc system;
+              args = [./builders/test_python.sh];
+              buildInputs = [
+                coreutils
+                pyenvDev
+                pyenvRun
+              ];
+              builder = "${bash}/bin/bash";
+              name = "test-python-code";
             };
           };
         }
