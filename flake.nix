@@ -22,6 +22,23 @@
             pypiDataSha256 = "0w64x47scn0cj854ddnafklljaivv2zigr4zzcvi3b80lfy1ks9f";
           };
 
+          # Generic executable builder
+          makeExecutable = (
+            {entrypoint, pathLibraries, name, system, replace ? {} }:
+            with pkgs; builtins.derivation {
+              inherit entrypoint pathLibraries name system;
+              args = [./builders/make_executable.sh];
+              builder = "${bash}/bin/bash";
+              buildInputs = [
+                coreutils
+                gnused
+              ];
+              executable = "bin/${name}";
+              envNames = builtins.attrNames replace;
+              envValues = builtins.attrValues replace;
+            }
+          );
+
           # Build Python environments
           pyenvDev = machNixWrapper.mkPython {
             inherit python;
@@ -54,11 +71,11 @@
           };
           apps = {
             default = {
-              program = "${self.packages.${system}.api}/bin/vuln-api";
+              program = "${self.packages.${system}.api}/bin/api";
               type = "app";
             };
             deployDynamoDb = {
-              program = "${self.packages.${system}.dynamoDb}/bin/dynamodb-local";
+              program = "${self.packages.${system}.dynamoDb}/bin/dynamodb";
               type = "app";
             };
             testPython = {
@@ -67,41 +84,38 @@
             };
           };
           packages = {
-            api = with pkgs; builtins.derivation {
-              inherit projectSrc system;
-              args = [./builders/api.sh];
-              bash = "${bash}";
-              buildInputs = [
+            api = with pkgs; makeExecutable {
+              inherit system;
+              entrypoint = ./builders/api.sh;
+              name = "api";
+              pathLibraries = [
                 coreutils
                 "${self.packages.${system}.dynamoDb}"
-                gnused
                 pyenvRun
               ];
-              builder = "${bash}/bin/bash";
-              entrypoint = ./builders/api_entrypoint.sh;
-              name = "api";
+              replace = {
+                inherit projectSrc;
+              };
             };
-            dynamoDb = with pkgs; builtins.derivation {
+            dynamoDb = with pkgs; makeExecutable {
               inherit system;
-              args = [./builders/dynamodb.sh];
-              bash = "${bash}";
-              buildInputs = [
+              entrypoint = ./builders/dynamodb.sh;
+              name = "dynamodb";
+              pathLibraries = [
                 coreutils
-                gnused
                 lsof
                 openjdk_headless
                 terraform
                 terraform-providers.aws
                 unzip
               ];
-              builder = "${bash}/bin/bash";
-              dynamoDbZip = pkgs.fetchurl {
-                url = "https://s3.us-west-2.amazonaws.com/dynamodb-local/dynamodb_local_2022-09-10.zip";
-                sha256 = "7ec2f8d538f4b026dacecc944ef68dc5a39878b702c866365f286c8e349d81e1";
+              replace = {
+                dynamoDbZip = pkgs.fetchurl {
+                  url = "https://s3.us-west-2.amazonaws.com/dynamodb-local/dynamodb_local_2022-09-10.zip";
+                  sha256 = "7ec2f8d538f4b026dacecc944ef68dc5a39878b702c866365f286c8e349d81e1";
+                };
+                src = ./infra;
               };
-              entrypoint = ./builders/dynamodb_entrypoint.sh;
-              name = "dynamodb";
-              src = ./infra;
             };
             docker = with pkgs; dockerTools.buildLayeredImage {
               name = "vuln-api";
@@ -123,18 +137,14 @@
               name = "lint-python-code";
               pythonExecutable = "${pyenvRun}/bin/python";
             };
-            testPython = with pkgs; builtins.derivation {
+            testPython = makeExecutable {
               inherit system;
-              args = [./builders/test_python.sh];
-              buildInputs = [
-                coreutils
-                gnused
+              entrypoint = ./builders/test_python.sh;
+              name = "test-python";
+              pathLibraries = [
                 pyenvDev
                 pyenvRun
               ];
-              builder = "${bash}/bin/bash";
-              entrypoint = ./builders/test_python_entrypoint.sh;
-              name = "test-python-code";
             };
           };
         }
