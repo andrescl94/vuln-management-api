@@ -291,6 +291,8 @@ and provide TLS termination.
 - **ECS**: A set of replicas of the API container will be deployed.
 This architecture will allow us to easily scale over time.
 - **DynamoDB**: It will be used as the main database of the application.
+- **CloudWatch Logs**: Streams where the application will send access logs
+for traceability purposes.
 
 ## Next Steps
 1. **Test coverage**:
