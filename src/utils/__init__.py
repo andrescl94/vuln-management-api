@@ -62,19 +62,17 @@ async def fetch_cve_info(cve: str) -> NISTResponse:
 
 
 def get_from_timestamp(timestamp: float) -> str:
-    return datetime.fromtimestamp(timestamp).astimezone(tz=TZ).replace(
+    return datetime.utcfromtimestamp(timestamp).astimezone(tz=TZ).replace(
         microsecond=0
     ).isoformat()
 
 
 def get_now_as_iso() -> str:
-    return datetime.now(timezone.utc).astimezone(tz=TZ).replace(
-        microsecond=0
-    ).isoformat()
+    return get_from_timestamp(get_now_timestamp())
 
 
 def get_now_timestamp() -> float:
-    return datetime.now(timezone.utc).astimezone(tz=TZ).timestamp()
+    return datetime.utcnow().timestamp()
 
 
 def get_severity_from_nist(item: Dict[str, Any]) -> Optional[NISTSeverity]:
