@@ -11,15 +11,15 @@ async def _add_system_vulnerability(
     system_name: str, cve: str, user_email: str
 ) -> SuccessWriteItemModel:
     success: bool = True
-    details: str = ""
+    detail: str = ""
     try:
         await add_system_vulnerability(system_name, cve, user_email)
     except CustomHTTPException as exc:
         success = False
-        details = exc.detail
+        detail = exc.detail
 
     return SuccessWriteItemModel(
-        item=cve, details=details, success=success
+        item=cve, detail=detail, success=success
     )
 
 
@@ -29,17 +29,17 @@ async def _update_system_vulnerability_state(
     user_email: str
 ) -> SuccessWriteItemModel:
     success: bool = True
-    details: str = ""
+    detail: str = ""
     try:
         await update_system_vulnerability_state(
             system_name, update.cve, update.state, user_email
         )
     except CustomHTTPException as exc:
         success = False
-        details = exc.detail
+        detail = exc.detail
 
     return SuccessWriteItemModel(
-        item=update.cve, details=details, success=success
+        item=update.cve, detail=detail, success=success
     )
 
 

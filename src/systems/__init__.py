@@ -6,11 +6,14 @@ from .domain import (
     get_system_summary,
     get_system_user,
     get_system_user_role,
+    get_system_vulnerabilities,
+    get_system_vulnerability,
     update_system_vulnerability_state,
 )
 from .types import (
     SeveritySummary,
     SystemRoles,
+    SystemVulnerabilitySeverity,
     SystemVulnerabilityState,
     VulnerabilitySummary,
 )
@@ -18,6 +21,7 @@ from .types import (
 __all__ = [
     "SeveritySummary",
     "SystemRoles",
+    "SystemVulnerabilitySeverity",
     "SystemVulnerabilityState",
     "VulnerabilitySummary",
     "add_system_user",
@@ -27,5 +31,7 @@ __all__ = [
     "get_system_summary",
     "get_system_user",
     "get_system_user_role",
+    "get_system_vulnerabilities",
+    "get_system_vulnerability",
     "update_system_vulnerability_state",
 ]

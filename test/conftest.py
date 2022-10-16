@@ -17,6 +17,7 @@ MOCK_USER_READ_OWNER = "mockuserreadowner@gmail.com"
 MOCK_USER_READ_REPORTER_EXPIRED = "mockuserreadreporterexpired@gmail.com"
 MOCK_USER_WRITE_OWNER = "mockuserwriteowner@gmail.com"
 MOCK_USER_WRITE_REPORTER = "mockuserwritereporter@gmail.com"
+MOCK_USER_WRITE_VIEWER = "mockuserwriteviewer@gmail.com"
 
 MOCK_READ_SYSTEM = "read-system"
 MOCK_WRITE_SYSTEM = "write-system"
@@ -71,6 +72,13 @@ async def user_write_reporter_jwt() -> str:
 
 
 @pytest_asyncio.fixture(scope="session")
+async def user_write_viewer_jwt() -> str:
+    name: str = "Mock User Viewer Owner"
+    user = await create_user(MOCK_USER_WRITE_VIEWER , name)
+    return user.jwt
+
+
+@pytest_asyncio.fixture(scope="session")
 async def read_system() -> str:
     description = "Test system for reading purposes"
     system = await create_system(
@@ -90,5 +98,17 @@ async def write_system() -> str:
     description = "Test system for writing purposes"
     system = await create_system(
         MOCK_WRITE_SYSTEM, description, MOCK_USER_WRITE_OWNER
+    )
+    await add_system_user(
+        MOCK_WRITE_SYSTEM,
+        MOCK_USER_WRITE_REPORTER,
+        SystemRoles.REPORTER,
+        MOCK_USER_WRITE_OWNER
+    )
+    await add_system_user(
+        MOCK_WRITE_SYSTEM,
+        MOCK_USER_WRITE_VIEWER,
+        SystemRoles.VIEWER,
+        MOCK_USER_WRITE_OWNER
     )
     return system.name

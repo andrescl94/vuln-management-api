@@ -22,7 +22,7 @@ class SuccessModel(BaseModel):  # pylint: disable=too-few-public-methods
 class SuccessWriteItemModel(  # pylint: disable=too-few-public-methods
     SuccessModel
 ):
-    details: str
+    detail: str
     item: str
 
 
