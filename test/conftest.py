@@ -8,7 +8,10 @@ import pytest
 import pytest_asyncio
 
 from app.main import APP
+from app.models import VulnerabilityDetailsModel
 from systems import add_system_user, create_system, SystemRoles
+from systems.dal import add_system_vulnerability
+from systems.types import CVEInfo, SystemVulnerabilitySeverity, SystemVulnerabilityState
 from users import create_user
 
 
@@ -89,6 +92,68 @@ async def read_system() -> str:
         MOCK_USER_READ_REPORTER_EXPIRED,
         SystemRoles.REPORTER,
         MOCK_USER_READ_OWNER
+    )
+
+    await asyncio.gather(
+        *[
+            add_system_vulnerability(
+                system_name=MOCK_READ_SYSTEM,
+                cve=details.cve,
+                user_email=MOCK_USER_READ_OWNER,
+                cve_info=CVEInfo(
+                    description="Test vulnerability",
+                    references=details.references,
+                    severity=details.severity,
+                    severity_score=details.severity_score
+                ),
+                state=details.state
+            )
+            for details in [
+                VulnerabilityDetailsModel(
+                    cve="cve-2022-12341",
+                    description="Test vulnerability cve-2022-12341",
+                    references=["https://reference-1-cve-2022-12341.com"],
+                    severity=SystemVulnerabilitySeverity.HIGH,
+                    severity_score=8.7,
+                    state=SystemVulnerabilityState.OPEN
+                ),
+                VulnerabilityDetailsModel(
+                    cve="cve-2022-12342",
+                    description="Test vulnerability cve-2022-12342",
+                    references=[
+                        "https://reference-1-cve-2022-12342.com",
+                        "https://reference-2-cve-2022-12342.com"
+                    ],
+                    severity=SystemVulnerabilitySeverity.HIGH,
+                    severity_score=8.2,
+                    state=SystemVulnerabilityState.REMEDIATED
+                ),
+                VulnerabilityDetailsModel(
+                    cve="cve-2022-12343",
+                    description="Test vulnerability cve-2022-12343",
+                    references=[],
+                    severity=SystemVulnerabilitySeverity.UNKNOWN,
+                    severity_score=None,
+                    state=SystemVulnerabilityState.OPEN
+                ),
+                VulnerabilityDetailsModel(
+                    cve="cve-2022-12344",
+                    description="Test vulnerability cve-2022-12344",
+                    references=["https://reference-1-cve-2022-12344/com"],
+                    severity=SystemVulnerabilitySeverity.CRITICAL,
+                    severity_score=9.5,
+                    state=SystemVulnerabilityState.REMEDIATED
+                ),
+                VulnerabilityDetailsModel(
+                    cve="cve-2022-12345",
+                    description="Test vulnerability cve-2022-12345",
+                    references=[],
+                    severity=SystemVulnerabilitySeverity.MEDIUM,
+                    severity_score=5.0,
+                    state=SystemVulnerabilityState.REMEDIATED
+                )
+            ]
+        ]
     )
     return system.name
 

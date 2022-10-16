@@ -57,10 +57,13 @@ async def add_system_user(
 
 
 async def add_system_vulnerability(
-    system_name: str, cve: str, user_email: str, cve_info: CVEInfo
+    system_name: str,
+    cve: str,
+    user_email: str,
+    cve_info: CVEInfo,
+    state: SystemVulnerabilityState = SystemVulnerabilityState.OPEN
 ) -> SystemVulnerability:
     now = get_now_as_iso()
-    default_state = SystemVulnerabilityState.OPEN
     system_vulnerability = SystemVulnerability(
         added_by=user_email,
         added_date=now,
@@ -71,7 +74,7 @@ async def add_system_vulnerability(
         references=cve_info.references,
         severity=cve_info.severity,
         severity_score=cve_info.severity_score,
-        state=default_state,
+        state=state,
         system_name=system_name
     )
     await put_item(
