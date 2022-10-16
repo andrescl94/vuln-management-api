@@ -295,11 +295,10 @@ This architecture will allow us to easily scale over time.
 for traceability purposes.
 
 ## Next Steps
-1. **Test coverage**:
-Although the application was tested dynamically in the local environmment,
-it is necessary to write some automatic tests
-that ensure the new code does not break any existing functionality.
-It can be added as a new stage of the pipeline.
+1. **Audit Logs**:
+Although the authentication and authorization process were tested,
+currently the application does not generate any kind of access logs
+to have traceability.
 2. **Secret handling**:
 Due to time constraints, the secrets and keys required by the application
 are stored in the repository in plain-text.
@@ -309,7 +308,6 @@ to encrypt the secrets.
 They must be rotated before.
 3. **Improve CI**:
 Add more stages to the Actions workflows like:
-    - Backend tests
     - Infrastructure deployment
     - Application deployment
 4. **Cloud deployment**:

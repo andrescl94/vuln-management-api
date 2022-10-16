@@ -101,7 +101,7 @@ async def read_system() -> str:
                 cve=details.cve,
                 user_email=MOCK_USER_READ_OWNER,
                 cve_info=CVEInfo(
-                    description="Test vulnerability",
+                    description=details.description,
                     references=details.references,
                     severity=details.severity,
                     severity_score=details.severity_score

@@ -77,7 +77,7 @@ def test_get_vuln_summary_detailed(
                 [
                     VulnerabilityDetailsDict(
                         cve="cve-2022-12343",
-                        description="Test vulnerability",
+                        description="Test vulnerability cve-2022-12343",
                         references=[],
                         severity="unknown",
                         severity_score=None,
@@ -88,7 +88,7 @@ def test_get_vuln_summary_detailed(
                 [
                     VulnerabilityDetailsDict(
                         cve="cve-2022-12345",
-                        description="Test vulnerability",
+                        description="Test vulnerability cve-2022-12345",
                         references=[],
                         severity="medium",
                         severity_score=5.0,
@@ -98,7 +98,7 @@ def test_get_vuln_summary_detailed(
                 [
                     VulnerabilityDetailsDict(
                         cve="cve-2022-12341",
-                        description="Test vulnerability",
+                        description="Test vulnerability cve-2022-12341",
                         references=[
                             "https://reference-1-cve-2022-12341.com"
                         ],
@@ -108,7 +108,7 @@ def test_get_vuln_summary_detailed(
                     ),
                     VulnerabilityDetailsDict(
                         cve="cve-2022-12342",
-                        description="Test vulnerability",
+                        description="Test vulnerability cve-2022-12342",
                         references=[
                             "https://reference-1-cve-2022-12342.com",
                             "https://reference-2-cve-2022-12342.com"
@@ -121,7 +121,7 @@ def test_get_vuln_summary_detailed(
                 [
                     VulnerabilityDetailsDict(
                         cve="cve-2022-12344",
-                        description="Test vulnerability",
+                        description="Test vulnerability cve-2022-12344",
                         references=[
                             "https://reference-1-cve-2022-12344/com"
                         ],
