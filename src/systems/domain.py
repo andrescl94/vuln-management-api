@@ -66,7 +66,7 @@ async def add_system_vulnerability(
                 severity=(
                     SystemVulnerabilitySeverity(cve_data.severity.severity)
                     if cve_data.severity is not None
-                    else SystemVulnerabilitySeverity("unkown")
+                    else SystemVulnerabilitySeverity("unknown")
                 ),
                 severity_score=(
                     cve_data.severity.severity_score
