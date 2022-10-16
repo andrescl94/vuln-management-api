@@ -29,19 +29,17 @@ def test_google_auth_redirect(client: TestClient) -> None:
     )
 
 
-@pytest.mark.asyncio
-async def test_google_auth_error() -> None:
+def test_google_auth_error(client: TestClient) -> None:
     error = ExternalAuthError(("test",))
     with patch(
         "app.main._handle_oauth_response",
         side_effect=error
     ):
-        async with AsyncClient(app=APP, base_url="http://test") as client:
-            response = await client.get("/auth")
-            assert response.status_code == 503
+        response = client.get("/auth")
+        assert response.status_code == 503
 
-            response_json = response.json()
-            assert response_json["detail"] == error.message
+        response_json = response.json()
+        assert response_json["detail"] == error.message
 
 
 @pytest.mark.asyncio
@@ -60,6 +58,9 @@ async def test_google_successful_auth() -> None:
                 }
             }
         ):
+            user = await get_user(user_email)
+            assert user is None
+
             async with AsyncClient(app=APP, base_url="http://test") as client:
                 response = await client.get("/auth")
                 assert response.status_code == 201
@@ -70,6 +71,8 @@ async def test_google_successful_auth() -> None:
 
                 user = await get_user(user_email)
                 assert user is not None
+                assert user.email == user_email
+                assert user.name == user_name
 
                 response = await client.get("/auth")
                 response_json = response.json()

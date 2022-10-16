@@ -12,6 +12,7 @@ from systems import add_system_user, create_system, SystemRoles
 from users import create_user
 
 
+MOCK_USER_CREATE = "mockusercreate@gmail.com"
 MOCK_USER_READ_OWNER = "mockuserreadowner@gmail.com"
 MOCK_USER_READ_REPORTER_EXPIRED = "mockuserreadreporterexpired@gmail.com"
 MOCK_USER_WRITE_OWNER = "mockuserwriteowner@gmail.com"
@@ -31,6 +32,13 @@ def event_loop() -> Generator[AbstractEventLoop, None, None]:
 @pytest.fixture(scope="session")
 def client() -> TestClient:
     return TestClient(APP)
+
+
+@pytest_asyncio.fixture(scope="session")
+async def user_create_jwt() -> str:
+    name: str = "Mock User Create"
+    user = await create_user(MOCK_USER_CREATE , name)
+    return user.jwt
 
 
 @pytest_asyncio.fixture(scope="session")

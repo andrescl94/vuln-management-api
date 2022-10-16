@@ -21,7 +21,8 @@ function main {
                 --full-pep8 \
                 --strictness veryhigh \
                 --test-warnings \
-                "${dir}"
+                "${dir}" \
+            || return 1
         done \
     && popd \
     && touch "${out}"
