@@ -4,7 +4,7 @@ from typing import List, NamedTuple, Optional, TypedDict
 
 class SystemRoles(Enum):
     OWNER: str = "owner"
-    REPORTER: str = "reported"
+    REPORTER: str = "reporter"
     VIEWER: str = "viewer"
 
 
