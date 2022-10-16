@@ -59,38 +59,35 @@ def test_add_user_no_auth(client: TestClient, write_system: str) -> None:
 
 
 def test_add_user_no_permissions(
-    client: TestClient, write_system: str, user_write_reporter_jwt: str
+    client: TestClient,
+    write_system: str,
+    user_write_reporter_jwt: str,
+    user_read_owner_jwt: str
 ) -> None:
     error = AccessDenied()
-    response = client.post(
-        f"/systems/{write_system}/add_user",
-        headers={"Authentication": f"Bearer {user_write_reporter_jwt}"},
-        json={"email": "user@gmail.com", "role": SystemRoles.VIEWER.value}
-    )
-    assert response.status_code == 403
+    for user_jwt in [user_write_reporter_jwt, user_read_owner_jwt]:
+        response = client.post(
+            f"/systems/{write_system}/add_user",
+            headers={"Authentication": f"Bearer {user_jwt}"},
+            json={"email": "user@gmail.com", "role": SystemRoles.VIEWER.value}
+        )
+        assert response.status_code == 403
 
-    response_json = response.json()
-    assert response_json["detail"] == error.message
+        response_json = response.json()
+        assert response_json["detail"] == error.message
 
 
 def test_add_user_validations(
     client: TestClient, write_system: str, user_write_owner_jwt: str
 ) -> None:
-    kwargs = {
-        "url": f"/systems/{write_system}/add_user",
-        "headers": {"Authentication": f"Bearer {user_write_owner_jwt}"}
-    }
-
-    # Invalid email
-    response = client.post(
-        **kwargs,
-        json={"email": "user", "role": SystemRoles.OWNER.value}
-    )
-    assert response.status_code == 422
-
-    # Invalid role
-    response = client.post(
-        **kwargs,
-        json={"email": "user@gmail.com", "role": "role"}
-    )
-    assert response.status_code == 422
+    payloads = [
+        {"email": "user", "role": SystemRoles.OWNER.value},  # Invalid email
+        {"email": "user@gmail.com", "role": "role"}  # Invalid role
+    ]
+    for payload in payloads:
+        response = client.post(
+            f"/systems/{write_system}/add_user",
+            headers={"Authentication": f"Bearer {user_write_owner_jwt}"},
+            json=payload
+        )
+        assert response.status_code == 422

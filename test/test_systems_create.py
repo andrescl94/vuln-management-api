@@ -56,45 +56,26 @@ def test_create_system_no_auth(client: TestClient) -> None:
 def test_create_system_validations(
     client: TestClient, user_create_jwt: str
 ) -> None:
-    kwargs = {
-        "url": "/systems/create",
-        "headers": {"Authentication": f"Bearer {user_create_jwt}"}
-    }
-
-    # System name too short
-    response = client.post(
-        **kwargs,
-        json={"name": "test", "description": "Test System"}
-    )
-    assert response.status_code == 422
-
-    # System name too long
-    response = client.post(
-        **kwargs,
-        json={
-            "name": "testsytem-testsystem-testsystem",
+    payloads = [
+        {"name": "test", "description": "Test System"},  # Name too short
+        {
+            "name": "testsytem-testsystem-testsystem",  # Name too long
             "description": "Test System"
+        },
+        {
+            "name": "test$y$tem",  # Illegal characters in name
+            "description": "Test System"
+        },
+        {"name": "testsystem", "description": "Test"},  # Description too short
+        {
+            "name": "testsystem",
+            "description": "Test $ystem"  # Illegal characters in description
         }
-    )
-    assert response.status_code == 422
-
-    # System with forbidden characters
-    response = client.post(
-        **kwargs,
-        json={"name": "test$y$tem", "description": "Test System"}
-    )
-    assert response.status_code == 422
-
-    # Description too short
-    response = client.post(
-        **kwargs,
-        json={"name": "testsystem", "description": "Test"}
-    )
-    assert response.status_code == 422
-
-    # Descrition with forbidden characters
-    response = client.post(
-        **kwargs,
-        json={"name": "testsystem", "description": "Test $ystem"}
-    )
-    assert response.status_code == 422
+    ]
+    for payload in payloads:
+        response = client.post(
+            "/systems/create",
+            headers={"Authentication": f"Bearer {user_create_jwt}"},
+            json=payload
+        )
+        assert response.status_code == 422

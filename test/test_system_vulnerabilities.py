@@ -182,19 +182,19 @@ async def test_add_update_vulnerabilities_bulk(
                     "success": False
                 } in response_json
 
-                vulns = await get_system_vulnerabilities(write_system)
-                vulns_cves = [vuln.cve for vuln in vulns]
-                assert all(
-                    cve in vulns_cves
-                    for cve in ["cve-2022-12341", "cve-2022-12342"]
-                )
+            vulns = await get_system_vulnerabilities(write_system)
+            vulns_cves = [vuln.cve for vuln in vulns]
+            assert all(
+                cve in vulns_cves
+                for cve in ["cve-2022-12341", "cve-2022-12342"]
+            )
 
-                for vuln in vulns:
-                    if vuln.cve == "cve-2022-12342":
-                        assert vuln.severity == (
-                            SystemVulnerabilitySeverity.UNKNOWN
-                        )
-                        assert vuln.severity_score is None
+            for vuln in vulns:
+                if vuln.cve == "cve-2022-12342":
+                    assert vuln.severity == (
+                        SystemVulnerabilitySeverity.UNKNOWN
+                    )
+                    assert vuln.severity_score is None
 
             response = await client.post(
                 f"/systems/{write_system}/update_vulns_state_bulk",
@@ -233,140 +233,85 @@ def test_add_update_vulnerabilities_no_authentication(
     client: TestClient, write_system: str
 ) -> None:
     error = AuthenticationFailed()
+    payloads = [
+        ("report_vuln", {"cve": "cve-2022-1234"}),
+        (
+            "report_vulns_bulk",
+            [{"cve": "cve-2022-1234"}, {"cve": "cve-2022-12345"}]
+        ),
+        ("update_vuln_state", {"cve": "cve-2022-1234", "state": "remediated"}),
+        (
+            "update_vulns_state_bulk",
+            [
+                {"cve": "cve-2022-1234", "state": "open"},
+                {"cve": "cve-2022-1234", "state": "remediated"}
+            ],
+        )
+    ]
+    for endpoint, payload in payloads:
+        response = client.post(
+            f"/systems/{write_system}/{endpoint}",
+            json=payload
+        )
+        assert response.status_code == 401
 
-    # Report vuln
-    response = client.post(
-        f"/systems/{write_system}/report_vuln",
-        json={"cve": "cve-2022-1234"}
-    )
-    assert response.status_code == 401
-
-    response_json = response.json()
-    assert response_json["detail"] == error.message
-
-    # Report vulns bulk
-    response = client.post(
-        f"/systems/{write_system}/report_vulns_bulk",
-        json=[{"cve": "cve-2022-1234"}, {"cve": "cve-2022-12345"}]
-    )
-    assert response.status_code == 401
-
-    response_json = response.json()
-    assert response_json["detail"] == error.message
-
-    # Update state
-    response = client.post(
-        f"/systems/{write_system}/update_vuln_state",
-        json={"cve": "cve-2022-1234", "state": "remediated"}
-    )
-    assert response.status_code == 401
-
-    response_json = response.json()
-    assert response_json["detail"] == error.message
-
-    # Update states bulk
-    response = client.post(
-        f"/systems/{write_system}/update_vulns_state_bulk",
-        json=[
-            {"cve": "cve-2022-1234", "state": "open"},
-            {"cve": "cve-2022-1234", "state": "remediated"}
-        ]
-    )
-    assert response.status_code == 401
-
-    response_json = response.json()
-    assert response_json["detail"] == error.message
+        response_json = response.json()
+        assert response_json["detail"] == error.message
 
 
 def test_add_update_vulnerabilities_no_permissions(
-    client: TestClient, write_system: str, user_write_viewer_jwt: str
+    client: TestClient,
+    write_system: str,
+    user_write_viewer_jwt: str,
+    user_read_owner_jwt: str
 ) -> None:
     error = AccessDenied()
-    kwargs = {
-        "headers": {"Authentication": f"Bearer {user_write_viewer_jwt}"}
-    }
+    payloads = [
+        ("report_vuln", {"cve": "cve-2022-1234"}),
+        (
+            "report_vulns_bulk",
+            [{"cve": "cve-2022-1234"}, {"cve": "cve-2022-12345"}]
+        ),
+        ("update_vuln_state", {"cve": "cve-2022-1234", "state": "remediated"}),
+        (
+            "update_vulns_state_bulk",
+            [
+                {"cve": "cve-2022-1234", "state": "open"},
+                {"cve": "cve-2022-1234", "state": "remediated"}
+            ],
+        )
+    ]
+    for user_jwt in [
+        user_write_viewer_jwt,  # Insufficient permissions
+        user_read_owner_jwt  # Does not belong to the system
+    ]:
+        for endpoint, payload in payloads:
+            response = client.post(
+                f"/systems/{write_system}/{endpoint}",
+                headers={"Authentication": f"Bearer {user_jwt}"},
+                json=payload
+            )
+            assert response.status_code == 403
 
-    # Report vuln
-    response = client.post(
-        f"/systems/{write_system}/report_vuln",
-        json={"cve": "cve-2022-1234"},
-        **kwargs
-    )
-    assert response.status_code == 403
-
-    response_json = response.json()
-    assert response_json["detail"] == error.message
-
-    # Report vulns bulk
-    response = client.post(
-        f"/systems/{write_system}/report_vulns_bulk",
-        json=[{"cve": "cve-2022-1234"}, {"cve": "cve-2022-12345"}],
-        **kwargs
-    )
-    assert response.status_code == 403
-
-    response_json = response.json()
-    assert response_json["detail"] == error.message
-
-    # Update state
-    response = client.post(
-        f"/systems/{write_system}/update_vuln_state",
-        json={"cve": "cve-2022-1234", "state": "remediated"},
-        **kwargs
-    )
-    assert response.status_code == 403
-
-    response_json = response.json()
-    assert response_json["detail"] == error.message
-
-    # Update states bulk
-    response = client.post(
-        f"/systems/{write_system}/update_vulns_state_bulk",
-        json=[
-            {"cve": "cve-2022-1234", "state": "open"},
-            {"cve": "cve-2022-1234", "state": "remediated"}
-        ],
-        **kwargs
-    )
-    assert response.status_code == 403
-
-    response_json = response.json()
-    assert response_json["detail"] == error.message
+            response_json = response.json()
+            assert response_json["detail"] == error.message
 
 
 def test_add_vulnerability_validations(
     client: TestClient, write_system: str, user_write_owner_jwt: str
 ) -> None:
-    kwargs = {
-        "url": f"/systems/{write_system}/report_vuln",
-        "headers": {"Authentication": f"Bearer {user_write_owner_jwt}"}
-    }
-
-    # Bad formatted CVE
-    response = client.post(
-        **kwargs,
-        json={"cve": "vulnerability"}
-    )
-    assert response.status_code == 422
-
-    response = client.post(
-        **kwargs,
-        json={"cve": "CVE-22000-12344"}
-    )
-    assert response.status_code == 422
-
-
-def test_update_vulnerability_state_validations(
-    client: TestClient, write_system: str, user_write_owner_jwt: str
-) -> None:
-    kwargs = {
-        "url": f"/systems/{write_system}/update_vuln_state",
-        "headers": {"Authentication": f"Bearer {user_write_owner_jwt}"}
-    }
-
-    # Invalid state
-    response = client.post(
-        **kwargs,
-        json={"cve": "CVE-2022-1234", "state": "closed"}
-    )
-    assert response.status_code == 422
+    payloads = [
+        ("report_vuln", {"cve": "vulnerability"}),  # Bad CVE
+        ("report_vuln", {"cve": "CVE-22000-12344"}),  # Bad CVE
+        (
+            "update_vuln_state",
+            {"cve": "CVE-2022-1234", "state": "closed"}  # Invalid state
+        ),
+    ]
+    for endpoint, payload in payloads:
+        response = client.post(
+            f"/systems/{write_system}/{endpoint}",
+            headers={"Authentication": f"Bearer {user_write_owner_jwt}"},
+            json=payload
+        )
+        assert response.status_code == 422
