@@ -4,7 +4,7 @@ from typing import Awaitable, Callable, Dict, List, ParamSpec, TypeVar, cast
 
 from fastapi import Request
 
-from custom_exceptions import AccessDenied, MaxItemsLimit
+from custom_exceptions import AccessDenied, AuthenticationFailed, MaxItemsLimit
 from jwt_token import get_email_from_jwt
 from systems import SystemRoles, get_system_user_role
 from users import verify_user_jwt_token
@@ -78,6 +78,6 @@ def require_authentication(
                 token_verified = await verify_user_jwt_token(jwt_token)
             if token_verified:
                 return await func(*args, **kwargs)
-        raise AccessDenied()
+        raise AuthenticationFailed()
 
     return wrapper

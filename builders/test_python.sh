@@ -14,14 +14,19 @@ function main {
 
     PATH="__PATH__" \
     && PYTHONPATH="$(pwd)/src:__PYTHONPATH__" \
+    && { dynamodb & } \
+    && sleep 10 \
     && pytest \
         --color=yes \
         --cov \
         --cov-report=xml \
         --durations=5 \
         --exitfirst \
+        --showlocals \
         --strict-config \
+        -vvv \
         "test/"
 }
 
+trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 main "${@}"

@@ -137,11 +137,13 @@
               name = "lint-python-code";
               pythonExecutable = "${pyenvRun}/bin/python";
             };
-            testPython = makeExecutable {
+            testPython = with pkgs; makeExecutable {
               inherit system;
               entrypoint = ./builders/test_python.sh;
               name = "test-python";
               pathLibraries = [
+                coreutils
+                "${self.packages.${system}.dynamoDb}"
                 pyenvDev
                 pyenvRun
               ];

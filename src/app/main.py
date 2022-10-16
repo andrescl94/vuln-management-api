@@ -326,7 +326,10 @@ async def systems_update_vulnerabilities_state_bulk(
 
 
 @APP.get(
-    path="/auth", response_model=SuccessTokenModel, tags=[PathTags.AUTH.value]
+    path="/auth",
+    response_model=SuccessTokenModel,
+    status_code=201,
+    tags=[PathTags.AUTH.value]
 )
 async def auth(request: Request) -> SuccessTokenModel:
     """
@@ -334,11 +337,7 @@ async def auth(request: Request) -> SuccessTokenModel:
 
     It will only return the API token on the first successfull authentication.
     """
-    try:
-        token = await OAUTH.google.authorize_access_token(request)
-    except OAuthError as exc:
-        raise ExternalAuthError(exc.args) from exc
-
+    token = await _handle_oauth_response(request)
     user_info = token.get('userinfo')
     return await handle_user_login(user_info)
 
@@ -350,6 +349,15 @@ async def login(request: Request) -> Any:
     """
     redirect_uri = request.url_for('auth')
     return await OAUTH.google.authorize_redirect(request, redirect_uri)
+
+
+async def _handle_oauth_response(request: Request) -> Any:
+    try:
+        token = await OAUTH.google.authorize_access_token(request)
+    except OAuthError as exc:
+        raise ExternalAuthError(exc.args) from exc
+
+    return token
 
 
 async def handle_user_login(

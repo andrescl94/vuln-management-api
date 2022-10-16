@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, NamedTuple, Optional
 import pytz
 
@@ -68,11 +68,13 @@ def get_from_timestamp(timestamp: float) -> str:
 
 
 def get_now_as_iso() -> str:
-    return datetime.now().astimezone(tz=TZ).replace(microsecond=0).isoformat()
+    return datetime.now(timezone.utc).astimezone(tz=TZ).replace(
+        microsecond=0
+    ).isoformat()
 
 
 def get_now_timestamp() -> float:
-    return datetime.now().astimezone(tz=TZ).timestamp()
+    return datetime.now(timezone.utc).astimezone(tz=TZ).timestamp()
 
 
 def get_severity_from_nist(item: Dict[str, Any]) -> Optional[NISTSeverity]:

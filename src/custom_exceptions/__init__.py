@@ -22,6 +22,12 @@ class CustomExternalException(CustomHTTPException):
 class AccessDenied(CustomHTTPException):
     def __init__(self) -> None:
         message = "Access denied"
+        super().__init__(status_code=403, message=message)
+
+
+class AuthenticationFailed(CustomHTTPException):
+    def __init__(self) -> None:
+        message = "Authentication failed"
         super().__init__(status_code=401, message=message)
 
 
