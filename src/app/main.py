@@ -1,16 +1,18 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import RedirectResponse
+from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette_context import context as request_context
 
 from context import (
     OAUTH_GOOGLE_CLIENT_ID,
     OAUTH_GOOGLE_SECRET,
+    SESSION_SECRET_KEY
 )
 from custom_exceptions import ExternalAuthError
-from jwt_token import get_email_from_jwt
 from systems import (
     add_system_user,
     add_system_vulnerability,
@@ -29,6 +31,7 @@ from .decorators import (
     require_access,
     require_authentication,
 )
+from .middlewares import CustomContextMiddleware
 from .models import (
     PathTags,
     SeveritySummaryModel,
@@ -45,13 +48,16 @@ from .models import (
 )
 
 
-APP = FastAPI()
-APP.add_middleware(
-    SessionMiddleware,
-    secret_key="secret",
-    same_site="strcit",
-    https_only=True
-)
+MIDDLEWARES = [
+    Middleware(
+        SessionMiddleware,
+        secret_key=SESSION_SECRET_KEY,
+        same_site="strcit",
+        https_only=True
+    ),
+    Middleware(CustomContextMiddleware)
+]
+APP = FastAPI(middleware=MIDDLEWARES)
 
 OAUTH = OAuth()
 OAUTH.register(
@@ -79,10 +85,7 @@ async def redirect_to_docs() -> RedirectResponse:
     tags=[PathTags.SYSTEMS.value],
 )
 @require_authentication
-async def systems_create(
-    request: Request,
-    system: SystemModel
-) -> SuccessModel:
+async def systems_create(system: SystemModel) -> SuccessModel:
     """
     **Requires authentication**
 
@@ -95,7 +98,7 @@ async def systems_create(
       `-` (hyphen), `_` (underscore) and ` ` (white speaces);
       5 to 55 characters long.
     """
-    user_email = get_email_from_jwt(request)
+    user_email = request_context["user_email"]
     await create_system(system.name.lower(), system.description, user_email)
     return SuccessModel(success=True)
 
@@ -108,8 +111,7 @@ async def systems_create(
 )
 @require_authentication
 @require_access
-async def systems_get_vuln_summary(  # pylint: disable=unused-argument
-    request: Request,
+async def systems_get_vuln_summary(
     system_name: str,
     detailed: bool = Query(
         default=False, title="Flag set to retrieve a more detailed report"
@@ -174,7 +176,7 @@ async def systems_get_vuln_summary(  # pylint: disable=unused-argument
 @require_authentication
 @require_access
 async def systems_add_user(
-    request: Request, system_name: str, user: SystemUserModel
+    system_name: str, user: SystemUserModel
 ) -> SuccessModel:
     """
     **Requires authentication and system access with role owner**
@@ -187,7 +189,7 @@ async def systems_add_user(
         - **reporter**
         - **viewer**
     """
-    user_email = get_email_from_jwt(request)
+    user_email = request_context["user_email"]
     await add_system_user(
         system_name.lower(), user.email.lower(), user.role, user_email
     )
@@ -203,7 +205,7 @@ async def systems_add_user(
 @require_authentication
 @require_access
 async def systems_add_vulnerability(
-    request: Request, system_name: str, vulnerability: SystemVulnerabilityModel
+    system_name: str, vulnerability: SystemVulnerabilityModel
 ) -> SuccessModel:
     """
     **Requires authentication and system access with at least role reporter**
@@ -211,7 +213,7 @@ async def systems_add_vulnerability(
     Report a vulnerability with the provided information to the system
     - **cve**: CVE ID of the vulnerability to report
     """
-    user_email = get_email_from_jwt(request)
+    user_email = request_context["user_email"]
     await add_system_vulnerability(
         system_name.lower(), vulnerability.cve.lower(), user_email
     )
@@ -228,7 +230,6 @@ async def systems_add_vulnerability(
 @require_access
 @enforce_items_limit
 async def systems_add_vulnerabilities_bulk(
-    request: Request,
     system_name: str,
     vulnerabilities: List[SystemVulnerabilityModel]
 ) -> List[SuccessWriteItemModel]:
@@ -243,7 +244,7 @@ async def systems_add_vulnerabilities_bulk(
     Individual items may fail to be added,
     so be sure to check the response for more information
     """
-    user_email = get_email_from_jwt(request)
+    user_email = request_context["user_email"]
     return await add_system_vulnerabilities_bulk(
         system_name.lower(),
         _remove_duplicates([vuln.cve.lower() for vuln in vulnerabilities]),
@@ -260,7 +261,6 @@ async def systems_add_vulnerabilities_bulk(
 @require_authentication
 @require_access
 async def systems_update_vulnerability_state(
-    request: Request,
     system_name: str,
     vulnerability: UpdateSystemVulnerabilityModel
 ) -> SuccessModel:
@@ -274,7 +274,7 @@ async def systems_update_vulnerability_state(
         - **open**
         - **remediated**
     """
-    user_email = get_email_from_jwt(request)
+    user_email = request_context["user_email"]
     await update_system_vulnerability_state(
         system_name.lower(),
         vulnerability.cve.lower(),
@@ -294,7 +294,6 @@ async def systems_update_vulnerability_state(
 @require_access
 @enforce_items_limit
 async def systems_update_vulnerabilities_state_bulk(
-    request: Request,
     system_name: str,
     vulnerabilities: List[UpdateSystemVulnerabilityModel]
 ) -> List[SuccessWriteItemModel]:
@@ -309,7 +308,7 @@ async def systems_update_vulnerabilities_state_bulk(
         - **open**
         - **remediated**
     """
-    user_email = get_email_from_jwt(request)
+    user_email = request_context["user_email"]
     return await update_system_vulnerabilities_state_bulk(
         system_name.lower(),
         _remove_duplicates(
@@ -365,14 +364,20 @@ async def handle_user_login(
 ) -> SuccessTokenModel:
     user_email: str = user_info["email"]
     user_name: str = user_info.get("name", "")
+    jwt_token: Optional[str] = None
+    token_expiration_date: Optional[float] = None
+
     user = await get_user(user_email)
     if user is None:
         access_token = await create_user(user_email, user_name)
-    expiration_date = user.access_token_exp if user else access_token.exp
+        jwt_token = access_token.jwt
+        token_expiration_date = access_token.exp
+    else:
+        token_expiration_date = user.access_token_exp
     return SuccessTokenModel(
         success=True,
-        expiration_date=get_from_timestamp(expiration_date),
-        jwt_token=None if user else access_token.jwt
+        expiration_date=get_from_timestamp(token_expiration_date),
+        jwt_token=jwt_token
     )
 
 

@@ -1,6 +1,6 @@
 import binascii
 import secrets
-from typing import Optional
+from typing import Optional, Tuple
 
 
 from jwt_token import (
@@ -37,7 +37,7 @@ def generate_access_token(user_email: str, user_name: str) -> UserAccessToken:
     )
 
 
-async def verify_user_jwt_token(jwt_token: str) -> bool:
+async def verify_user_jwt_token(jwt_token: str) -> Tuple[bool, Optional[User]]:
     jwt_verified: bool = False
     jwt_claims = decrypt_jwt_token(jwt_token)
     user = await get_user(jwt_claims.sub)
@@ -46,7 +46,7 @@ async def verify_user_jwt_token(jwt_token: str) -> bool:
             jwt_claims.jti == user.access_token_jti
             and get_now_timestamp() < user.access_token_exp
         )
-    return jwt_verified
+    return jwt_verified, user
 
 
 async def create_user(user_email: str, user_name: str) -> UserAccessToken:
