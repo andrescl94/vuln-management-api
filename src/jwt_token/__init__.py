@@ -1,7 +1,6 @@
 import json
 from typing import NamedTuple
 
-from fastapi import Request
 from jwcrypto import jwe, jwk
 import jwt
 
@@ -52,10 +51,3 @@ def generate_encrypted_jwt_token(jwt_claims: JWTClaims) -> str:
         key=JWT_SIGNING_KEY,
         algorithm="HS512"
     )
-
-
-def get_email_from_jwt(request: Request) -> str:
-    auth_header = request.headers["Authentication"]
-    jwt_token = auth_header.split(" ")[1]
-    jwt_claims = decrypt_jwt_token(jwt_token)
-    return jwt_claims.sub
