@@ -122,7 +122,7 @@
               name = "vuln-api";
               contents = [ "${self.packages.${system}.api}" ];
               config = {
-                Cmd = [ "/bin/vuln-api" ];
+                Cmd = [ "/bin/api" ];
               };
             };
             lintPython = with pkgs; builtins.derivation {
