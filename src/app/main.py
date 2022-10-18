@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import RedirectResponse
+from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette_context import context as request_context
@@ -31,7 +32,11 @@ from .decorators import (
     require_access,
     require_authentication,
 )
-from .middlewares import CustomContextMiddleware
+from .middlewares import (
+    CustomContextMiddleware,
+    LoggingMiddleware,
+    wrapped_http_exception_handler,
+)
 from .models import (
     PathTags,
     SeveritySummaryModel,
@@ -55,9 +60,13 @@ MIDDLEWARES = [
         same_site="strcit",
         https_only=True
     ),
-    Middleware(CustomContextMiddleware)
+    Middleware(CustomContextMiddleware),
+    Middleware(LoggingMiddleware)
 ]
-APP = FastAPI(middleware=MIDDLEWARES)
+APP = FastAPI(
+    exception_handlers={HTTPException: wrapped_http_exception_handler},
+    middleware=MIDDLEWARES
+)
 
 OAUTH = OAuth()
 OAUTH.register(

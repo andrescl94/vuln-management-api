@@ -278,6 +278,34 @@ If detailed is true
 
 You can check the documentation for more information.
 
+As you make requests to the API,
+you may notice the access logs printed in the terminal.
+Here you can find information that may be useful for traceability, like:
+
+  For requests:
+
+  - **date**: timezone aware date when a request/response occurred.
+  - **req_id**: ID that uniquely identifies each request.
+  so it is possible to know which request had which response.
+  - **ip**: IP address of the client that made the request to the application.
+  - **user**: Email of the user that made the request to the application.
+  Defaults to `Unauthenticated` if the JWT is not present or is corrupted.
+  - **valid_token**: Boolean that identifies if the JWT has not expired.
+  - **method**: HTTP method used in the request.
+  - **path**: API route to which the request was sent.
+  - **querystring**: Query parameters of the request
+
+  For responses:
+
+  - **req_id**: ID of the request that originated the response,
+  so it is possible to correlate them.
+  - **status_code**: HTTP status code of the response.
+  - **process_time**: Time it took the server to process the request.
+
+If the application raises an exception due to an external service
+(DynamoDB, Google OAuth, NIST API, ...),
+a log record of level DEBUG will be printed with details of said exception.
+
 ## Deployment in the Cloud
 
 ![Cloud Architecture](resources/cloud_diagram.svg)
@@ -295,22 +323,18 @@ This architecture will allow us to easily scale over time.
 for traceability purposes.
 
 ## Next Steps
-1. **Audit Logs**:
-Although the authentication and authorization process were tested,
-currently the application does not generate any kind of access logs
-to have traceability.
-2. **Secret handling**:
+1. **Secret handling**:
 Due to time constraints, the secrets and keys required by the application
 are stored in the repository in plain-text.
 This is a serious security issue.
 One way to fix this could be to use [SOPS](https://github.com/mozilla/sops)
 to encrypt the secrets.
 They must be rotated before.
-3. **Improve CI**:
+2. **Improve CI**:
 Add more stages to the Actions workflows like:
     - Infrastructure deployment
     - Application deployment
-4. **Cloud deployment**:
+3. **Cloud deployment**:
 Add the Terraform code required to deploy the proposed diagram in AWS infrastructure
 
 ## Contact
