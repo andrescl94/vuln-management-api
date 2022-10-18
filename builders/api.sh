@@ -22,7 +22,7 @@ function main {
       && PYTHONPATH="${tempDir}/src:${PYTHONPATH}" \
       && { dynamodb & } \
       && sleep 10 \
-      && uvicorn --host 0.0.0.0 src.app.main:APP
+      && uvicorn --host 0.0.0.0 --no-access-log src.app.main:APP
 
 }
 
